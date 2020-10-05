@@ -1,0 +1,17 @@
+.DS_Store*
+._*
+.Spotlight-V100
+.Trashes
+
+#Icon?
+ehthumbs.db
+[Tt]humbs.db
+
+#stuff
+builds/
+.svn/
+export_obj/
+desktop.ini
+
+BrokenVector
+.tmp
