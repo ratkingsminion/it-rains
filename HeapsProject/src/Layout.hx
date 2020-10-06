@@ -46,6 +46,7 @@ class Layout {
 		}
 		var texture = res.toTexture();
 		texture.wrap = Repeat;
+		texture.filter = Nearest;
         textures.set(file, texture);
 		return texture;
 	}

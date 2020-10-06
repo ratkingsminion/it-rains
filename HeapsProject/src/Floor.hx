@@ -1,5 +1,6 @@
 package;
 
+import h3d.prim.UV;
 import h3d.Vector;
 import haxe.macro.Compiler.NullSafetyMode;
 import format.bmp.Writer;
@@ -42,12 +43,8 @@ class Floor {
 		points.push(add(offset, x + 0.0 * w, y + 0.0 * h, z1));
 		points.push(add(offset, x + 1.0 * w, y + 0.0 * h, z2));
 		points.push(add(offset, x + 1.0 * w, y + 1.0 * h, z3));
-		idxBuffer.push(idx + 0);
-		idxBuffer.push(idx + 1);
-		idxBuffer.push(idx + 2);
-		idxBuffer.push(idx + 2);
-		idxBuffer.push(idx + 3);
-		idxBuffer.push(idx + 0);
+		idxBuffer.push(idx + 0); idxBuffer.push(idx + 1); idxBuffer.push(idx + 2);
+		idxBuffer.push(idx + 2); idxBuffer.push(idx + 3); idxBuffer.push(idx + 0);
 	}
 
 	inline function getHeight(x:Float, y:Float):Float {
@@ -79,6 +76,7 @@ class Floor {
 		var colorsFloor = new Array<Point>();
 		var idxBufferFloor = new IndexBuffer();
 		var pointsWalls = new Array<Point>();
+		var uvsWalls = new Array<UV>();
 		var colorsWalls = new Array<Point>();
 		var idxBufferWalls = new IndexBuffer();
 
@@ -98,10 +96,22 @@ class Floor {
 				var r = getHeight(x + 1, y + 0);
 				var b = getHeight(x + 0, y - 1);
 				var f = getHeight(x + 0, y + 1);
-				if (m - l > 0.0) { addQuad4(pointsWalls, offset, 0.0, 1.0,  0.0, -1.0, idxBufferWalls, m, m, l, l); }
-				if (m - r > 0.0) { addQuad4(pointsWalls, offset, 1.0, 0.0,  0.0,  1.0, idxBufferWalls, m, m, r, r); }
-				if (m - b > 0.0) { addQuad4(pointsWalls, offset, 0.0, 0.0,  1.0,  0.0, idxBufferWalls, m, b, b, m); }
-				if (m - f > 0.0) { addQuad4(pointsWalls, offset, 1.0, 1.0, -1.0,  0.0, idxBufferWalls, m, f, f, m); }
+				if (m - l > 0.0) {
+					addQuad4(pointsWalls, offset, 0.0, 1.0,  0.0, -1.0, idxBufferWalls, m, m, l, l);
+					uvsWalls.push(new UV(0.0, 0.0)); uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - l)); uvsWalls.push(new UV(0.0, m - l));
+				}
+				if (m - r > 0.0) {
+					addQuad4(pointsWalls, offset, 1.0, 0.0,  0.0,  1.0, idxBufferWalls, m, m, r, r);
+					uvsWalls.push(new UV(0.0, 0.0)); uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - r)); uvsWalls.push(new UV(0.0, m - r));
+				}
+				if (m - b > 0.0) {
+					addQuad4(pointsWalls, offset, 0.0, 0.0,  1.0,  0.0, idxBufferWalls, m, b, b, m);
+					uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - b)); uvsWalls.push(new UV(0.0, m - b)); uvsWalls.push(new UV(0.0, 0.0));
+				}
+				if (m - f > 0.0) {
+					addQuad4(pointsWalls, offset, 1.0, 1.0, -1.0,  0.0, idxBufferWalls, m, f, f, m);
+					uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - f)); uvsWalls.push(new UV(0.0, m - f)); uvsWalls.push(new UV(0.0, 0.0));
+				}
 
 				//
 
@@ -114,7 +124,7 @@ class Floor {
 		for (pf in pointsFloor) {
 			var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
 			f = (f * 0.5) + 0.5;
-			trace(pf + " -> " + f);
+			//trace(pf + " -> " + f);
 			colorsFloor.push(new Point(f, f, f));
 		}
 
@@ -122,7 +132,7 @@ class Floor {
 			//var f = (pw.z + 1.0) / (1.0 + 1.0);
 			var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
 			f = (f * 0.5) + 0.5;
-			colorsWalls.push(new Point(f, f, f));
+			colorsWalls.push(new Point(1, 1, 1));
 		}
 
 		grid = new Polygon(pointsFloor, idxBufferFloor);
@@ -135,8 +145,8 @@ class Floor {
 
 		var walls = new Polygon(pointsWalls, idxBufferWalls);
 		walls.colors = colorsWalls;
+		walls.uvs = uvsWalls;
 		walls.addNormals();
-		walls.addUVs();
 		meshWalls = new Mesh(walls, mat, parent);
 		meshWalls.setPosition(gridSize * -0.5, gridSize * -0.5, 0.0);
 
