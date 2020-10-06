@@ -16,7 +16,7 @@ import hxd.Perlin;
 import h3d.prim.Grid;
 
 class Floor {
-	public var gridSize = 10;
+	public var gridSize(default, null) = 10;
 	//
 	final mountainLimit = 0.3;
 	final mountainMaxHeight = 2.0;
