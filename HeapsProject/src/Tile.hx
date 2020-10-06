@@ -18,13 +18,13 @@ class Tile {
 	public var y(default, null):Int;
 	public var pos(default, null):Point;
 	public var wv:WaterVolume;
-	public var maxWater(default, null):Float = 0.5; // TODO;
+	public var maxWater(default, null):Float = 0.5; // 0.5; // TODO;
 	public var curWater(default, null):Float = 0.0;
+	public var tree(default, null):Tree;
 	//
 	var neighbourWVs:Array<WaterVolume>;
 	var parent:Object;
 	var waterMesh:Mesh;
-	var tree:Tree;
 
 	//
 
@@ -62,6 +62,24 @@ class Tile {
 		return 0.0;
 	}
 
+	// returns the rest
+	public function removeWater(water:Float):Float {
+		if (water < 0.0001) {
+			return 0.0;
+		}
+		if (curWater <= 0.0) {
+			return water;
+		}
+		curWater -= water;
+		if (curWater < 0.0) {
+			var diff = -curWater;
+			curWater = 0.0;
+			return diff;
+		}
+		return 0.0;
+	}
+
+	// this oly adds a quad, for visualizing the water
 	public function setWaterLevel(level:Float) {
 		//level = level - pos.z;
 		if (level - pos.z > 0.0) {
@@ -86,11 +104,10 @@ class Tile {
 				waterMesh = new Mesh(waterQuad, waterMaterial, parent);
 				waterMesh.setPosition(pos.x, pos.y, 0.0);
 			}
-			else {
-				parent.addChild(waterMesh);
-			}
+			if (waterMesh.parent == null) { parent.addChild(waterMesh); }
 			//waterMesh.scaleZ = level;
 			waterMesh.z = level; // pos.z + level;
+			//trace(x + "/" + y + " " + level);
 		}
 		else {
 			waterMesh.remove();

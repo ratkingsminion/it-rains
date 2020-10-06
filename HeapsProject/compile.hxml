@@ -1,6 +1,6 @@
 -cp src
 -lib heaps
-#-D debug
+-D debug
 #-js publish/game.js
 #-lib hldx
 #-lib noisehx

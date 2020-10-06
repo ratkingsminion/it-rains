@@ -78,9 +78,33 @@ class WaterVolume {
 		if (water < 0.00001) {
 			return 0.0;
 		}
-		if (curVolumeNormalized > 0.99999) {
+		if (curVolumeNormalized > 0.9999) {
 			if (parentWV != null) { return parentWV.addWater(water, sourceTile); }
 			return water;
+		}
+
+		// give the tiles (soil) water
+
+		while (true) {
+			tempTilesToAddWater.resize(0);
+			for (ct in childTiles) { if (ct.curWater < ct.maxWater) { tempTilesToAddWater.push(ct); } }
+			for (dt in deeperTiles) { if (dt.curWater < dt.maxWater) { tempTilesToAddWater.push(dt); } }
+			var i = tempTilesToAddWater.length - 1;
+			if (i < 0) { break; }
+			//var nearest = getNearestTempWV(sourceTile);
+			//if (nearest != null) {
+			//	water = tempTilesToAddWater[i].addWater(water, sourceTile);
+			//	tempTilesToAddWater.remove(nearest);
+			//	--i;
+			//}
+			if (water < 0.0001) { break; } // return 0.0; }
+			var distributeWater = water > 0.001 ? water / (i + 1.0) : water;
+			while (i >= 0) {
+				//trace (i + ") add water to " + tempTilesToAddWater[i].x + "/" + tempTilesToAddWater[i].y);
+				water += tempTilesToAddWater[i].addWater(distributeWater) - distributeWater;
+				--i;
+			}
+			if (water < 0.0001) { break; } // return 0.0; }
 		}
 
 		while (true) {
@@ -113,28 +137,6 @@ class WaterVolume {
 			return water;
 		}
 
-		// give the tiles (soil) water
-
-		while (true) {
-			tempTilesToAddWater.resize(0);
-			for (ct in childTiles) { if (ct.curWater < ct.maxWater) { tempTilesToAddWater.push(ct); } }
-			var i = tempTilesToAddWater.length - 1;
-			if (i < 0) { break; }
-			//var nearest = getNearestTempWV(sourceTile);
-			//if (nearest != null) {
-			//	water = tempTilesToAddWater[i].addWater(water, sourceTile);
-			//	tempTilesToAddWater.remove(nearest);
-			//	--i;
-			//}
-			if (water < 0.0001) { return 0.0; }
-			var distributeWater = water > 0.01 ? water / (i + 1.0) : water;
-			while (i >= 0) {
-				water += tempTilesToAddWater[i].addWater(distributeWater) - distributeWater;
-				--i;
-			}
-			if (water < 0.0001) { return 0.0; }
-		}
-
 		//for (ct in childTiles) { // TODO distribute evently!! (see above)
 		//	// tempTilesToAddWater
 		//	water = ct.addWater(water);
@@ -153,6 +155,47 @@ class WaterVolume {
 			ct.setWaterLevel(level);
 		}
 
+		return 0.0;
+	}
+
+	// returns the water volume that was not removed
+	public function removeWater(water:Float, sourceTile:Tile):Float {
+		if (water < 0.00001) {
+			return 0.0;
+		}
+		
+		if (curVolumeNormalized >= 1.0) {
+			water = parentWV.removeWater(water, sourceTile);
+		}
+
+		if (water >= curVolume) {
+			addVolume(-curVolume, -curVolume);
+			
+			for (ct in childTiles) {
+				ct.setWaterLevel(-100000.0);
+			}
+			if (water == curVolume) {
+				for (ct in deeperTiles) {
+					ct.setWaterLevel(minHeight);
+				}
+			}
+			
+			water -= curVolume;
+
+			return water;
+		}
+
+		addVolume(-water, -water);
+		var level = minHeight + curVolumeNormalized * (maxHeight - minHeight);
+
+		for (ct in childTiles) {
+			ct.setWaterLevel(level);
+		}
+
+		for (ct in deeperTiles) {
+			ct.setWaterLevel(level);
+		}
+		
 		return 0.0;
 	}
 }

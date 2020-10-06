@@ -125,14 +125,14 @@ class Floor {
 			var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
 			f = (f * 0.5) + 0.5;
 			//trace(pf + " -> " + f);
-			colorsFloor.push(new Point(f, f, f));
+			colorsFloor.push(new Point(0, f, 0.5));
 		}
 
 		for (pw in pointsWalls) {
 			//var f = (pw.z + 1.0) / (1.0 + 1.0);
 			var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
 			f = (f * 0.5) + 0.5;
-			colorsWalls.push(new Point(1, 1, 1));
+			colorsWalls.push(new Point(0, f, 0.5));
 		}
 
 		grid = new Polygon(pointsFloor, idxBufferFloor);
@@ -220,6 +220,14 @@ class Floor {
 		var t = tiles[y * gridSize + x];
 		water = t.addWater(water);
 		t.wv.addWater(water, t);
+	}
+
+	// returns the amount of water that was not removed
+	public function removeWater(x:Int, y:Int, water:Float):Float {
+		var t = tiles[y * gridSize + x];
+		water = t.wv.removeWater(water, t);
+		water = t.removeWater(water);
+		return water;
 	}
 
 	//

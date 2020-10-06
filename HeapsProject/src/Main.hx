@@ -1,5 +1,7 @@
 package;
 
+import h2d.Object;
+import h2d.Text;
 import h3d.Engine;
 import h3d.scene.fwd.PointLight;
 import h3d.Vector;
@@ -34,8 +36,7 @@ class Main extends hxd.App {
 	var camInputZoom = 0.0;
 	var camRotation = new Vector(0.5, 0.0, 0.0);
 	var camPosition = new Vector(0.0, 0.0, 0.0);
-	var camZoom = 15.0;
-	var isAddingWater = false;
+	var camZoom = 20.0;
 
 	//
 
@@ -74,24 +75,18 @@ class Main extends hxd.App {
 		layerDebug = new Object(s2d);
 		debugTxt = new Text(Layout.getFont(), layerDebug);
 		debugTxt.setScale(0.5);
-		debugTxt.setPositi
 #end
+
+		floor.addWater(6, 4, 4.0);
 
 		//
 
-        onResize();
+		onResize();
 	}
 
     //
 
 	override function update(dt:Float) {
-		var time = Timer.frameCount * 0.02;
-
-		//s3d.camera.pos.set(Math.cos(time) * 1, 8.0, 4 + 0.7 * Math.sin(time));
-		//s3d.camera.pos.set(Math.cos(time) * 7, Math.sin(time) * 7, 4 + 0.7 * Math.sin(time));
-		//s3d.camera.target.set(avatar.x, avatar.y, avatar.z);
-		//light.setPosition(Math.sin(time * 1.1) * 1.0, Math.cos(time * 1.11) * 0.5, 2.0);
-
 #if js
 		// automatically resize canvas to browser window size
         if (canvas != null) {
@@ -102,8 +97,13 @@ class Main extends hxd.App {
 
 #if debug
 		debugTxt.text = "CCJ 2020 " + Main.VERSION + " | " + s2d.width + "x" + s2d.height + " | " + engine.drawCalls + " | "
-			+ " Scale:" + Helpers.floatToStringPrecision(Layout.SCALE, 2) + " | " + Timer.frameCount + " | " + Helpers.floatToStringPrecision(engine.fps, 1)
-			+ "\nPress C to switch between ortho and perspective cam";
+			+ " Scale:" + Helpers.floatToStringPrecision(Layout.SCALE, 2) + " | " + Timer.frameCount + " | " + Helpers.floatToStringPrecision(engine.fps, 1);
+			//+ "\nPress C to switch between ortho and perspective cam";
+			if (hoveredTile != null) {
+				debugTxt.text += "\nHovered Tile (" + hoveredTile.x + ", " + hoveredTile.y + ")";
+				debugTxt.text += "\n--> Tree: " + (hoveredTile.tree == null ? "no" : Std.string(hoveredTile.tree.index + 1));
+				debugTxt.text += "\n--> Water: " + hoveredTile.curWater + " / " + hoveredTile.maxWater;
+			}
 #end
 
 		//if (Key.isPressed(Key.C)) {
@@ -114,8 +114,11 @@ class Main extends hxd.App {
 		var ray = s3d.camera.rayFromScreen(s2d.mouseX * Layout.SCALE, s2d.mouseY * Layout.SCALE);
 		hoveredTile = floor.rayTile(ray);
 
-		if (hoveredTile != null && isAddingWater) {
-			floor.addWater(hoveredTile.x, hoveredTile.y, dt * 2.5);
+		if (hoveredTile != null && Key.isDown(Key.T)) {
+			floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5);
+		}
+		if (hoveredTile != null && Key.isDown(Key.G)) {
+			floor.removeWater(hoveredTile.x, hoveredTile.y, dt * 5);
 		}
 		
 		// camera
@@ -132,8 +135,8 @@ class Main extends hxd.App {
 		}
 		camInputMove.x = camInputMove.y = 0.0;
 
-		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 20.0);
-		camInputZoom = 0.0; // TODO
+		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 30.0);
+		camInputZoom = 0.0;
 
 		s3d.camera.pos.set(
 			camPosition.x + Math.cos(camRotation.x) * Math.sin(camRotation.y) * camZoom,
@@ -151,8 +154,6 @@ class Main extends hxd.App {
 	//
 
 	function onEvent(event:hxd.Event):Void {
-		isAddingWater = false;
-
 		if (event.button == 0) {
 			if (event.kind == EventKind.EPush) {
 				var ray = s3d.camera.rayFromScreen(event.relX, event.relY);
