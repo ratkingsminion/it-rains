@@ -35,14 +35,32 @@ class Tile {
 		this.parent = parent;
 	}
 
-	public function addTree() {
+	public function tick(dt:Float) {
 		if (tree != null) {
-			if (tree.index == Tree.AGE_COUNT - 1) { return; }
-			tree.change(tree.index + 1);
+			tree.tick(dt);
 		}
-		else {
-			tree = new Tree(0, new Point(pos.x + 0.5, pos.y + 0.5, pos.z), parent);
+	}
+
+	public function info():String {
+		var str = "Tile (" + x + "," + y + ") with " + Helpers.floatToStringPrecision((curWater / maxWater) * 100.0, 1) + "% water.";
+		if (tree != null) {
+			str += "\nThe tree is " + Helpers.floatToStringPrecision(tree.age, 1) + " old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
 		}
+		return str;
+	}
+
+	//
+
+	public function addTree():Bool {
+		if (tree == null) {
+			tree = new Tree(this, 0, new Point(pos.x + 0.5, pos.y + 0.5, pos.z), parent);
+			return true;
+		}
+		return false;
+		//else {
+		//	if (tree.index == Tree.AGE_COUNT - 1) { return; }
+		//	tree.change(tree.index + 1);
+		//}
 	}
 
 	// returns the rest

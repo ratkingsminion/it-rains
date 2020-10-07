@@ -20,20 +20,35 @@ class Tree {
 	//
 	public var obj(default, null):Object;
 	public var index(default, null):Int;
+	public var age(default, null) = 0.0;
+	public var growth(default, null) = 0.0;
 	//
+	var tile:Tile;
 	var parent:Object;
 	var rotation:Float;
 	var position:Point;
 
 	//
 
-	public function new(index:Int, position:Point, parent:Object) {
-		//var idx = Std.int(hxd.Math.random(models.length - 1));
+	public function new(tile:Tile, index:Int, position:Point, parent:Object) {
+		this.tile = tile;
 		this.index = index;
 		this.position = position;
 		this.parent = parent;
 		rotation = hxd.Math.random(hxd.Math.PI * 2.0);
 		setIndex(index);
+	}
+
+	public function tick(dt:Float) {
+		age += dt;
+		if (growth < 1.0) {
+			growth += 0.02 * dt - tile.removeWater(tile.wv.removeWater(0.02 * dt));
+			if (index >= 4) { return; }
+			else if (index == 3 && growth >= 1.00) { change(4); }
+			else if (index == 2 && growth >= 0.75) { change(3); }
+			else if (index == 1 && growth >= 0.50) { change(2); }
+			else if (index == 0 && growth >= 0.25) { change(1); }
+		}
 	}
 
 	public function change(index:Int) {

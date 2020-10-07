@@ -15,6 +15,7 @@ import js.Browser;
 
 class Main extends hxd.App {
 	public static final VERSION = "v0.0.1";
+	public static final TICK_TIME = 1.0; // one second per tick
 	//
 	public static var instance(default, null):Main;
 	public static var updates(default, null) = new Array<Float->Void>();
@@ -37,6 +38,9 @@ class Main extends hxd.App {
 	var camRotation = new Vector(0.5, 0.0, 0.0);
 	var camPosition = new Vector(0.0, 0.0, 0.0);
 	var camZoom = 20.0;
+	// time
+	var curTime = 0.0;
+	var tickTimer = -2.0;
 
 	//
 
@@ -74,6 +78,7 @@ class Main extends hxd.App {
 		// debug information
 		layerDebug = new Object(s2d);
 		debugTxt = new Text(Layout.getFont(), layerDebug);
+		debugTxt.setPosition(25.0, 25.0);
 		debugTxt.setScale(0.5);
 #end
 
@@ -95,15 +100,22 @@ class Main extends hxd.App {
         }
 #end
 
+		curTime += dt;
+		tickTimer += dt;
+		while (tickTimer > TICK_TIME) {
+			tickTimer -= TICK_TIME;
+			floor.tick(TICK_TIME);
+		}
+
 #if debug
-		debugTxt.text = "CCJ 2020 " + Main.VERSION + " | " + s2d.width + "x" + s2d.height + " | " + engine.drawCalls + " | "
-			+ " Scale:" + Helpers.floatToStringPrecision(Layout.SCALE, 2) + " | " + Timer.frameCount + " | " + Helpers.floatToStringPrecision(engine.fps, 1);
-			//+ "\nPress C to switch between ortho and perspective cam";
-			if (hoveredTile != null) {
-				debugTxt.text += "\nHovered Tile (" + hoveredTile.x + ", " + hoveredTile.y + ")";
-				debugTxt.text += "\n--> Tree: " + (hoveredTile.tree == null ? "no" : Std.string(hoveredTile.tree.index + 1));
-				debugTxt.text += "\n--> Water: " + hoveredTile.curWater + " / " + hoveredTile.maxWater;
-			}
+		var dbgStr = "";
+		dbgStr += Helpers.floatToStringPrecision(engine.fps, 2) + " fps";
+		dbgStr += "\n\n" + Std.int(curTime) + " days";
+		//+ | TD" + Main.VERSION + " | " + s2d.width + "x" + s2d.height + " | " + engine.drawCalls + " | "
+		//+ " Scale:" + Helpers.floatToStringPrecision(Layout.SCALE, 2) + " | " + Timer.frameCount + " | ";
+		//+ "\nPress C to switch between ortho and perspective cam";
+		if (hoveredTile != null) { dbgStr += "\n\n" + hoveredTile.info(); }
+		debugTxt.text = dbgStr;
 #end
 
 		//if (Key.isPressed(Key.C)) {

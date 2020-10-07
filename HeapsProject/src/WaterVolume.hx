@@ -159,13 +159,13 @@ class WaterVolume {
 	}
 
 	// returns the water volume that was not removed
-	public function removeWater(water:Float, sourceTile:Tile):Float {
+	public function removeWater(water:Float):Float {
 		if (water < 0.00001) {
 			return 0.0;
 		}
 		
 		if (curVolumeNormalized >= 1.0) {
-			water = parentWV.removeWater(water, sourceTile);
+			water = parentWV.removeWater(water);
 			if (water < 0.0001) { return 0.0; }
 		}
 

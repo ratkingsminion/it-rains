@@ -33,37 +33,23 @@ class Floor {
 
 	//
 
-	inline function add(a:Point, x:Float, y:Float, z:Float = 0.0):Point {
-		return a.add(new Point(x, y, z));
+	public function tick(dt:Float) {
+		// vaporizing water
+		for (t in tiles) {
+			if (t.curWater > 0.0) {
+				var rest = t.wv.removeWater(0.05 * dt);
+				if (rest > 0.0) { t.removeWater(rest); }
+			}
+		}
+
+		// probably growing trees
+		// TODO shuffling?
+		for (t in tiles) {
+			t.tick(dt);
+		}
 	}
 
-	inline function addQuad4(points:Array<Point>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0:Float = 0.0, z1:Float = 0.0, z2:Float = 0.0, z3:Float = 0.0) {
-		var idx = points.length;
-		points.push(add(offset, x + 0.0 * w, y + 1.0 * h, z0));
-		points.push(add(offset, x + 0.0 * w, y + 0.0 * h, z1));
-		points.push(add(offset, x + 1.0 * w, y + 0.0 * h, z2));
-		points.push(add(offset, x + 1.0 * w, y + 1.0 * h, z3));
-		idxBuffer.push(idx + 0); idxBuffer.push(idx + 1); idxBuffer.push(idx + 2);
-		idxBuffer.push(idx + 2); idxBuffer.push(idx + 3); idxBuffer.push(idx + 0);
-	}
-
-	inline function getHeight(x:Float, y:Float):Float {
-		return perlin.gradient(2000, x * 0.35, y * 0.35);
-		//var pl = perlin.gradient(2000, x * 0.35, y * 0.35);
-		//if (pl < mountainLimit && pl > -valleyLimit) { pl = 0.0; }
-		//else if (pl <= -valleyLimit) { pl = valleyMaxDepth * (pl + valleyLimit) / (1.0 - valleyLimit); }
-		//else if (pl >= mountainLimit) { pl = mountainMaxHeight * (pl - mountainLimit) / (1.0 - mountainLimit); }
-		//return pl;
-		//return pl > 0 ? 1 :  pl < 0 ? -1 : 0;
-	}
-
-	inline function middle2(a:Float, b:Float):Float {
-		return (a + b) * 0.5;
-	}
-	inline function middle4(a:Float, b:Float, c:Float, d:Float):Float {
-		return (a + b + c + d) * 0.25;
-		//return if (a > b && a > c && a > d) a else if (b > a && b > c && b > d) b else if (c > a && c > b && c > d) c else d;
-	}
+	//
 
 	public function new(parent:Object, gridSize:Int = 10) {
 		var mat = Material.create(Layout.getTexture("floor1"));
@@ -155,6 +141,38 @@ class Floor {
 		createWaterVolume(null, tiles.copy(), 10000.0);
 	}
 
+	inline function add(a:Point, x:Float, y:Float, z:Float = 0.0):Point {
+		return a.add(new Point(x, y, z));
+	}
+
+	inline function addQuad4(points:Array<Point>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0:Float = 0.0, z1:Float = 0.0, z2:Float = 0.0, z3:Float = 0.0) {
+		var idx = points.length;
+		points.push(add(offset, x + 0.0 * w, y + 1.0 * h, z0));
+		points.push(add(offset, x + 0.0 * w, y + 0.0 * h, z1));
+		points.push(add(offset, x + 1.0 * w, y + 0.0 * h, z2));
+		points.push(add(offset, x + 1.0 * w, y + 1.0 * h, z3));
+		idxBuffer.push(idx + 0); idxBuffer.push(idx + 1); idxBuffer.push(idx + 2);
+		idxBuffer.push(idx + 2); idxBuffer.push(idx + 3); idxBuffer.push(idx + 0);
+	}
+
+	inline function getHeight(x:Float, y:Float):Float {
+		return perlin.gradient(2000, x * 0.35, y * 0.35);
+		//var pl = perlin.gradient(2000, x * 0.35, y * 0.35);
+		//if (pl < mountainLimit && pl > -valleyLimit) { pl = 0.0; }
+		//else if (pl <= -valleyLimit) { pl = valleyMaxDepth * (pl + valleyLimit) / (1.0 - valleyLimit); }
+		//else if (pl >= mountainLimit) { pl = mountainMaxHeight * (pl - mountainLimit) / (1.0 - mountainLimit); }
+		//return pl;
+		//return pl > 0 ? 1 :  pl < 0 ? -1 : 0;
+	}
+
+	inline function middle2(a:Float, b:Float):Float {
+		return (a + b) * 0.5;
+	}
+	inline function middle4(a:Float, b:Float, c:Float, d:Float):Float {
+		return (a + b + c + d) * 0.25;
+		//return if (a > b && a > c && a > d) a else if (b > a && b > c && b > d) b else if (c > a && c > b && c > d) c else d;
+	}
+
 	function createWaterVolume(parent:WaterVolume, tilesBelow:Array<Tile>, curTileMaxHeight:Float):WaterVolume {
 		var wv = new WaterVolume(parent);
 		if (parent != null) { parent.childWVs.push(wv); }
@@ -225,7 +243,7 @@ class Floor {
 	// returns the amount of water that was not removed
 	public function removeWater(x:Int, y:Int, water:Float):Float {
 		var t = tiles[y * gridSize + x];
-		water = t.wv.removeWater(water, t);
+		water = t.wv.removeWater(water);
 		return t.removeWater(water);
 	}
 
