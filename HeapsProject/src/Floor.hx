@@ -226,8 +226,7 @@ class Floor {
 	public function removeWater(x:Int, y:Int, water:Float):Float {
 		var t = tiles[y * gridSize + x];
 		water = t.wv.removeWater(water, t);
-		water = t.removeWater(water);
-		return water;
+		return t.removeWater(water);
 	}
 
 	//

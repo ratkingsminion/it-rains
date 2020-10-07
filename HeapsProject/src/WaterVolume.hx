@@ -78,7 +78,7 @@ class WaterVolume {
 		if (water < 0.00001) {
 			return 0.0;
 		}
-		if (curVolumeNormalized > 0.9999) {
+		if (curVolumeNormalized >= 1.0) {
 			if (parentWV != null) { return parentWV.addWater(water, sourceTile); }
 			return water;
 		}
@@ -109,7 +109,7 @@ class WaterVolume {
 
 		while (true) {
 			tempChildrenToFill.resize(0);
-			for (c in childWVs) { if (c.curVolumeNormalized < 0.99999) { tempChildrenToFill.push(c); } }
+			for (c in childWVs) { if (c.curVolumeNormalized < 1.0) { tempChildrenToFill.push(c); } }
 			var i = tempChildrenToFill.length - 1;
 			if (i < 0) { break; }
 
@@ -166,11 +166,10 @@ class WaterVolume {
 		
 		if (curVolumeNormalized >= 1.0) {
 			water = parentWV.removeWater(water, sourceTile);
+			if (water < 0.0001) { return 0.0; }
 		}
 
 		if (water >= curVolume) {
-			addVolume(-curVolume, -curVolume);
-			
 			for (ct in childTiles) {
 				ct.setWaterLevel(-100000.0);
 			}
@@ -181,6 +180,7 @@ class WaterVolume {
 			}
 			
 			water -= curVolume;
+			addVolume(-curVolume, -curVolume);
 
 			return water;
 		}

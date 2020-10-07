@@ -177,15 +177,15 @@ class Main extends hxd.App {
 			camInputZoom = event.wheelDelta * 35.0;
 		}
 
+		if (event.kind == EventKind.EMove && camInputRotateLastMousePos != null) {
+			camInputRotate.x = (event.relY - camInputRotateLastMousePos.y) * 0.25;
+			camInputRotate.y = (event.relX - camInputRotateLastMousePos.x) * -0.25;
+			camInputRotateLastMousePos.set(event.relX, event.relY);
+		}
 		if (event.kind == EventKind.EMove && camInputMoveLastMousePos != null) {
 			camInputMove.x = (event.relX - camInputMoveLastMousePos.x) * 0.85;
 			camInputMove.y = (event.relY - camInputMoveLastMousePos.y) * 0.85;
 			camInputMoveLastMousePos.set(event.relX, event.relY);
-		}
-		if (event.kind == EventKind.EMove && camInputRotateLastMousePos != null) {
-			camInputRotate.x = (event.relY - camInputRotateLastMousePos.y) * 0.85;
-			camInputRotate.y = (event.relX - camInputRotateLastMousePos.x) * -0.85;
-			camInputRotateLastMousePos.set(event.relX, event.relY);
 		}
 
 		// TEST
