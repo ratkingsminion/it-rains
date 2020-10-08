@@ -1,5 +1,7 @@
 package;
 
+import h3d.mat.Material;
+import h3d.Vector;
 import hxd.Res;
 import h3d.col.Point;
 import hxd.res.Model;
@@ -22,7 +24,19 @@ class Tree {
 	public var index(default, null):Int;
 	public var age(default, null) = 0.0;
 	public var growth(default, null) = 0.0;
+	public var isThirsty(default, null) = false;
+	public var isDrowning(default, null) = false;
+	public var deathFactor(default, null) = 0.0;
 	//
+	var parchPerTick = 0.05;
+	var drownPerTick = 0.05;
+	var rejuvenatePerTick = 0.01;
+	var growthPerTick = 0.02;
+	var drinkNeededPerTick = 0.02;
+	var drownToleranceVolumeMin = 0.1;
+	var drownToleranceVolumeMax = 0.3;
+	//
+	var mat:Material;
 	var tile:Tile;
 	var parent:Object;
 	var rotation:Float;
@@ -41,13 +55,45 @@ class Tree {
 
 	public function tick(dt:Float) {
 		age += dt;
+
+		var waterToRemove = drinkNeededPerTick * dt;
+		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove));
+		var thirstFactor = (waterNotRemoved / waterToRemove);
+		var drownFactor = 0.0;
+		if (waterNotRemoved <= 0.0) {
+			drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
+		}
+
+		isThirsty = thirstFactor > 0.0;
+		isDrowning = drownFactor > 0.0;
+
+		deathFactor = isThirsty || isDrowning
+			? Math.min(deathFactor + (parchPerTick * thirstFactor + drownPerTick * drownFactor) * dt, 1.0)
+			: Math.max(deathFactor - rejuvenatePerTick * dt, 0.0);
+
+		var liveFactor = 1.0 - deathFactor;
+		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
+
+
+		if (deathFactor >= 1.0) {
+			tile.removeTree();
+			return;
+		}
+
 		if (growth < 1.0) {
-			growth += 0.02 * dt - tile.removeWater(tile.wv.removeWater(0.02 * dt));
+			growth += (1.0 - thirstFactor) * growthPerTick * dt;
 			if (index >= 4) { return; }
 			else if (index == 3 && growth >= 1.00) { change(4); }
 			else if (index == 2 && growth >= 0.75) { change(3); }
 			else if (index == 1 && growth >= 0.50) { change(2); }
 			else if (index == 0 && growth >= 0.25) { change(1); }
+		}
+	}
+
+	public function destroy() {
+		if (obj != null) {
+			obj.remove();
+			obj = null;
 		}
 	}
 
@@ -82,5 +128,6 @@ class Tree {
 		obj.scale(MODELS[index].scale * 0.01); // TODO
 		obj.setRotation(0, 0, rotation);
 		obj.setPosition(position.x, position.y, position.z);
+		mat = obj.getMaterials()[0];
 	}
 }

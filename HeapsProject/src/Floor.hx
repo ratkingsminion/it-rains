@@ -227,7 +227,7 @@ class Floor {
 			}
 		}
 
-		wv.setTotalMaxVolume();
+		//wv.setTotalMaxVolume();
 
 		return wv;
 	}

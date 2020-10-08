@@ -46,7 +46,7 @@ class Main extends hxd.App {
 
 	override function init() {
 		super.init();
-
+		
 #if js
   	 	canvas = cast Browser.document.getElementById("webgl");
         Browser.document.ondrag = e -> { e.preventDefault(); }

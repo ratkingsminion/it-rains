@@ -21,6 +21,7 @@ class Tile {
 	public var maxWater(default, null):Float = 0.5; // 0.5; // TODO;
 	public var curWater(default, null):Float = 0.0;
 	public var tree(default, null):Tree;
+	public var waterLevel(default, null):Float = 0.0;
 	//
 	var neighbourWVs:Array<WaterVolume>;
 	var parent:Object;
@@ -42,9 +43,15 @@ class Tile {
 	}
 
 	public function info():String {
-		var str = "Tile (" + x + "," + y + ") with " + Helpers.floatToStringPrecision((curWater / maxWater) * 100.0, 1) + "% water.";
+		var str = "Tile (" + x + "/" + y + ") with " + Helpers.floatToStringPrecision((curWater / maxWater) * 100.0, 1) + "% water.";
+		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeAndAbove() * 100, 1) + " litres water above the tile, and " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
+		str += "\nThere is " + Helpers.floatToStringPrecision(waterLevel * 100, 1) + " litres water above the tile.";
+		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
 		if (tree != null) {
-			str += "\nThe tree is " + Helpers.floatToStringPrecision(tree.age, 1) + " old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
+			str += "\n\nThe tree on the soil is " + Helpers.floatToStringPrecision(tree.age, 1) + " days old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
+			if (tree.deathFactor > 0.0) {
+				str += "\nThe tree is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating") + " (" + Std.int(tree.deathFactor * 100.0) + "% on the brink of death).";
+			}
 		}
 		return str;
 	}
@@ -52,15 +59,16 @@ class Tile {
 	//
 
 	public function addTree():Bool {
-		if (tree == null) {
-			tree = new Tree(this, 0, new Point(pos.x + 0.5, pos.y + 0.5, pos.z), parent);
-			return true;
-		}
-		return false;
-		//else {
-		//	if (tree.index == Tree.AGE_COUNT - 1) { return; }
-		//	tree.change(tree.index + 1);
-		//}
+		if (tree != null) { return false; }
+		tree = new Tree(this, 0, new Point(pos.x + 0.5, pos.y + 0.5, pos.z), parent);
+		return true;
+	}
+
+	public function removeTree():Bool {
+		if (tree == null) { return false; }
+		tree.destroy();
+		tree = null;
+		return true;
 	}
 
 	// returns the rest
@@ -98,9 +106,10 @@ class Tile {
 	}
 
 	// this oly adds a quad, for visualizing the water
-	public function setWaterLevel(level:Float) {
-		//level = level - pos.z;
-		if (level - pos.z > 0.0) {
+	@:allow(WaterVolume)
+	function setWaterLevel(level:Float) {
+		waterLevel = Math.max(0.0, level - pos.z);
+		if (waterLevel > 0.0) {
 			if (waterMesh == null) {
 				if (waterQuad == null) {
 					var min = 0.0;

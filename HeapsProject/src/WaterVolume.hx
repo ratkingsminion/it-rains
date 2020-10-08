@@ -10,8 +10,8 @@ class WaterVolume {
 	public var minHeight(default, null):Float;
 	public var maxHeight(default, null):Float;
 	// water inside:
-	public var maxVolumeTotal(default, null):Float;
-	public var curVolumeTotal(default, null):Float = 0.0;
+	//public var maxVolumeTotal(default, null):Float;
+	// public var curVolumeTotal(default, null):Float = 0.0;
 	public var maxVolume(default, null):Float;
 	public var curVolume(default, null):Float = 0.0;
 	public var curVolumeNormalized(default, null):Float = 0.0;
@@ -35,17 +35,30 @@ class WaterVolume {
 		//trace("Water Volume with " + childTiles.length + " child tiles and " + deeperTiles.length + " deeper tiles has " + maxVolume + " volume");
 	}
 
-	public function setTotalMaxVolume() {
-		maxVolumeTotal = maxVolume;
-		for (c in childWVs) { maxVolumeTotal += c.maxVolumeTotal; }
-		//trace("Water Volume with " + childTiles.length + " child tiles and " + deeperTiles.length + " deeper tiles has " + maxVolumeTotal + " TOTAL volume and " + maxVolume + " volume");
+	//public function setTotalMaxVolume() {
+	//	maxVolumeTotal = maxVolume;
+	//	for (c in childWVs) { maxVolumeTotal += c.maxVolumeTotal; }
+	//	//trace("Water Volume with " + childTiles.length + " child tiles and " + deeperTiles.length + " deeper tiles has " + maxVolumeTotal + " TOTAL volume and " + maxVolume + " volume");
+	//}
+
+	public function getVolumeAndBelow() {
+		var volume = curVolume;
+		for (c in childWVs) { volume += c.getVolumeAndBelow(); }
+		return volume;
+	}
+
+	public function getVolumeOfCompleteWaterBody():Float {
+		if (curVolume <= 0.0001) { return 0.0; }
+		var tmp = this;
+		while (tmp.curVolume >= tmp.maxVolume) { tmp = parentWV; }
+		return tmp.getVolumeAndBelow();
 	}
 
 	function addVolume(water:Float, total:Float) {
 		curVolume += water;
 		curVolumeNormalized = curVolume / maxVolume;
-		curVolumeTotal += total;
-		if (parentWV != null) { parentWV.addVolume(0.0, water);}
+		//curVolumeTotal += total;
+		//if (parentWV != null) { parentWV.addVolume(0.0, water);}
 	}
 
 	function getDistanceToTile(sourceTile:Tile):Float {
@@ -136,11 +149,6 @@ class WaterVolume {
 			if (parentWV != null) { return parentWV.addWater(water, sourceTile); }
 			return water;
 		}
-
-		//for (ct in childTiles) { // TODO distribute evently!! (see above)
-		//	// tempTilesToAddWater
-		//	water = ct.addWater(water);
-		//}
 
 		// set the height
 
