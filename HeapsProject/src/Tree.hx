@@ -33,8 +33,8 @@ class Tree {
 	var rejuvenatePerTick = 0.01;
 	var growthPerTick = 0.02;
 	var drinkNeededPerTick = 0.02;
-	var drownToleranceVolumeMin = 0.1;
-	var drownToleranceVolumeMax = 0.3;
+	var drownToleranceVolumeMin = 0.2;
+	var drownToleranceVolumeMax = 0.6;
 	//
 	var mat:Material;
 	var tile:Tile;
@@ -57,7 +57,8 @@ class Tree {
 		age += dt;
 
 		var waterToRemove = drinkNeededPerTick * dt;
-		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove));
+		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.35));
+		for (n in tile.neighbours) { waterNotRemoved = n.removeWater(n.wv.removeWater((waterToRemove * 0.65) / tile.neighbours.length)); }
 		var thirstFactor = (waterNotRemoved / waterToRemove);
 		var drownFactor = 0.0;
 		if (waterNotRemoved <= 0.0) {
@@ -81,7 +82,7 @@ class Tree {
 		}
 
 		if (growth < 1.0) {
-			growth += (1.0 - thirstFactor) * growthPerTick * dt;
+			growth = Math.min(growth + (1.0 - thirstFactor) * growthPerTick * dt, 1.0);
 			if (index >= 4) { return; }
 			else if (index == 3 && growth >= 1.00) { change(4); }
 			else if (index == 2 && growth >= 0.75) { change(3); }

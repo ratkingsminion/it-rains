@@ -1,5 +1,6 @@
 package;
 
+import format.abc.Data.ABCData;
 import h3d.prim.UV;
 import h3d.prim.Quads;
 import h3d.col.Point;
@@ -17,11 +18,12 @@ class Tile {
 	public var x(default, null):Int;
 	public var y(default, null):Int;
 	public var pos(default, null):Point;
+	public var neighbours(default, null):Array<Tile>;
 	public var wv:WaterVolume;
-	public var maxWater(default, null):Float = 0.5; // 0.5; // TODO;
-	public var curWater(default, null):Float = 0.0;
 	public var tree(default, null):Tree;
+	public var curWater(default, null):Float = 0.0;
 	public var waterLevel(default, null):Float = 0.0;
+	public var maxWater(default, null):Float = 0.5; // 0.5; // TODO;
 	//
 	var neighbourWVs:Array<WaterVolume>;
 	var parent:Object;
@@ -34,6 +36,7 @@ class Tile {
 		this.y = y;
 		this.pos = pos;
 		this.parent = parent;
+		neighbours = new Array<Tile>();
 	}
 
 	public function tick(dt:Float) {
@@ -50,7 +53,10 @@ class Tile {
 		if (tree != null) {
 			str += "\n\nThe tree on the soil is " + Helpers.floatToStringPrecision(tree.age, 1) + " days old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
 			if (tree.deathFactor > 0.0) {
-				str += "\nThe tree is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating") + " (" + Std.int(tree.deathFactor * 100.0) + "% on the brink of death).";
+				str += "\nThe tree is at " + Std.int((1.0 - tree.deathFactor) * 100.0) + "% health - it is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating");
+			}
+			else {
+				str += "\nThe tree is 100% healthy.";
 			}
 		}
 		return str;
@@ -60,7 +66,7 @@ class Tile {
 
 	public function addTree():Bool {
 		if (tree != null) { return false; }
-		tree = new Tree(this, 0, new Point(pos.x + 0.5, pos.y + 0.5, pos.z), parent);
+		tree = new Tree(this, 0, pos, parent);
 		return true;
 	}
 
@@ -112,8 +118,8 @@ class Tile {
 		if (waterLevel > 0.0) {
 			if (waterMesh == null) {
 				if (waterQuad == null) {
-					var min = 0.0;
-					var max = 1.0;
+					var min = -0.5;
+					var max = 0.5;
 					waterQuad = new Quads(
 						//[ new Point(-0.5, -0.5, 0.0), new Point(0.5, -0.5, 0.0), new Point(-0.5, 0.5, 0.0), new Point(0.5, 0.5, 0.0) ], // points
 						[ new Point(min, min), new Point(max, min), new Point(min, max), new Point(max, max) ], // points

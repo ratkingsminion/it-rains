@@ -1,5 +1,6 @@
 package;
 
+import h3d.col.Plane;
 import h2d.Object;
 import h2d.Text;
 import h3d.Engine;
@@ -15,7 +16,7 @@ import js.Browser;
 
 class Main extends hxd.App {
 	public static final VERSION = "v0.0.1";
-	public static final TICK_TIME = 1.0; // one second per tick
+	public static final TICK_TIME = 0.2; // one second per tick
 	//
 	public static var instance(default, null):Main;
 	public static var updates(default, null) = new Array<Float->Void>();
@@ -27,9 +28,12 @@ class Main extends hxd.App {
 #if js
     var canvas:CanvasElement;
 #end
-	var light:PointLight;
 	var floor:Floor;
+	var clouds = new Array<Cloud>();
 	var hoveredTile:Tile = null;
+	// caera
+	var camLight:PointLight;
+	var cursorLight:PointLight;
 	var camInputRotate = new Vector();
 	var camInputRotateLastMousePos:Vector = null;
 	var camInputMove = new Vector();
@@ -65,14 +69,20 @@ class Main extends hxd.App {
 		//var floorMaterials = [ for (t in floorTextures) Material.create(t) ];
 
 		floor = new Floor(s3d);
+		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
-		// create the light		
-		light = new PointLight(s3d);
-		light.color.setColor(0xccffdd);
-		light.params.set(0, 0.25, 0.1);
-		light.setPosition(1.0, 0.5, 2.0);
-		//new DirLight(new h3d.Vector(0.5, 0.5, -0.5), s3d);
-		s3d.lightSystem.ambientLight.set(0.3, 0.3, 0.3);
+		// create the lights
+		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
+		//
+		camLight = new PointLight(s3d);
+		camLight.color.setColor(0xffffff);
+		camLight.z = 2.0;
+		//camLight.params.set(0, 0.25, 9.1);
+		//
+		cursorLight = new PointLight(s3d);
+		cursorLight.color.setColor(0x1111ff11);
+		cursorLight.z = 1.0;
+		cursorLight.params.set(2, 0.1, 0);
 
 #if debug
 		// debug information
@@ -83,6 +93,14 @@ class Main extends hxd.App {
 #end
 
 		floor.addWater(6, 4, 4.0);
+
+		var rain = new Rain(floor.obj);
+		rain.parts.x = 6.5;
+		rain.parts.y = 4.5;
+		rain.parts.z = 8;
+
+		addCloud(0, 0);
+		addCloud(1, 1);
 
 		//
 
@@ -104,6 +122,7 @@ class Main extends hxd.App {
 		tickTimer += dt;
 		while (tickTimer > TICK_TIME) {
 			tickTimer -= TICK_TIME;
+			for (c in clouds) { c.tick(TICK_TIME); }
 			floor.tick(TICK_TIME);
 		}
 
@@ -125,6 +144,8 @@ class Main extends hxd.App {
 
 		var ray = s3d.camera.rayFromScreen(s2d.mouseX * Layout.SCALE, s2d.mouseY * Layout.SCALE);
 		hoveredTile = floor.rayTile(ray);
+		var p = ray.intersect(floor.plane);
+		if (p != null) { cursorLight.x = p.x; cursorLight.y = p.y; }
 
 		if (hoveredTile != null && Key.isDown(Key.T)) {
 			floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5);
@@ -142,9 +163,11 @@ class Main extends hxd.App {
 		camInputRotate.x = camInputRotate.y = 0.0;
 
 		if (camInputMove.length() > 0.0) {
-			camPosition.x = hxd.Math.clamp(camPosition.x - (Math.sin(camRotation.y) * camInputMove.y + Math.cos(camRotation.y) * camInputMove.x) * dt, -floor.gridSize * 0.5, floor.gridSize * 0.5);
-			camPosition.y = hxd.Math.clamp(camPosition.y - (Math.cos(camRotation.y) * camInputMove.y - Math.sin(camRotation.y) * camInputMove.x) * dt, -floor.gridSize * 0.5, floor.gridSize * 0.5);
+			camPosition.x = hxd.Math.clamp(camPosition.x - (Math.sin(camRotation.y) * camInputMove.y + Math.cos(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
+			camPosition.y = hxd.Math.clamp(camPosition.y - (Math.cos(camRotation.y) * camInputMove.y - Math.sin(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
 		}
+		camLight.x = camPosition.x;
+		camLight.y = camPosition.y;
 		camInputMove.x = camInputMove.y = 0.0;
 
 		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 30.0);
@@ -161,6 +184,13 @@ class Main extends hxd.App {
 		for (update in updates) {
 			update(dt);
 		}
+	}
+
+	//
+
+	public function addCloud(x:Int, y:Int) {
+		var cloud = new Cloud(s3d, floor, x, y, 1, 0);
+		clouds.push(cloud);
 	}
 
 	//

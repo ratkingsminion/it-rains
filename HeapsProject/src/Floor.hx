@@ -1,5 +1,6 @@
 package;
 
+import h3d.col.Plane;
 import h3d.prim.UV;
 import h3d.Vector;
 import haxe.macro.Compiler.NullSafetyMode;
@@ -17,7 +18,13 @@ import hxd.Perlin;
 import h3d.prim.Grid;
 
 class Floor {
+
+	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
+
 	public var gridSize(default, null) = 10;
+	public var tiles(default, null) = new Array<Tile>();
+	public var obj(default, null):Object;
+	public var plane(default, null) = Plane.Z();
 	//
 	final mountainLimit = 0.3;
 	final mountainMaxHeight = 2.0;
@@ -26,7 +33,6 @@ class Floor {
 	//
 	var perlin = new Perlin();
 	var grid:Polygon;
-	public var tiles(default, null) = new Array<Tile>();
 	var meshFloor:Mesh;
 	var collFloor:Collider;
 	var meshWalls:Mesh;
@@ -37,7 +43,7 @@ class Floor {
 		// vaporizing water
 		for (t in tiles) {
 			if (t.curWater > 0.0) {
-				var rest = t.wv.removeWater(0.05 * dt);
+				var rest = t.wv.removeWater(EVAPORATE_WATER_PER_TILE_AND_TICK * dt);
 				if (rest > 0.0) { t.removeWater(rest); }
 			}
 		}
@@ -52,7 +58,7 @@ class Floor {
 	//
 
 	public function new(parent:Object, gridSize:Int = 10) {
-		var mat = Material.create(Layout.getTexture("floor1"));
+		var mat = Material.create(Layout.getTexture("floor2"));
 		mat.mainPass.addShader(new FloorShader());
 		mat.color = new Vector(1, 1, 1, 1);
 
@@ -72,7 +78,7 @@ class Floor {
 
 		for (y in 0...gridSize) {
 			for (x in 0...gridSize) {
-				offset.set(x, y, 0.0);
+				offset.set(x - 0.5, y - 0.5, 0.0);
 				var m  = getHeight(x + 0, y + 0);
 				addQuad4(pointsFloor, offset, 0.0, 0.0, 1.0, 1.0, idxBufferFloor, m, m, m, m); // middle quad
 
@@ -101,8 +107,21 @@ class Floor {
 
 				//
 
-				var pos = new Point(x - 0.5 * gridSize, y - 0.5 * gridSize, m);
-				tiles.push(new Tile(x, y, pos, parent));
+				tiles.push(new Tile(x, y, new Point(x, y, m), parent));
+			}
+		}
+
+		for (y in 0...gridSize) {
+			for (x in 0...gridSize) {
+				var t = tiles[y * gridSize + x];
+				for (yy in (y-1)...(y+2)) {
+					if (yy < 0 || yy >= gridSize) { continue; }
+					for (xx in (x-1)...(x+2)) {
+						if (xx < 0 || xx >= gridSize) { continue; }
+						var n = tiles[yy * gridSize + xx];
+						t.neighbours.push(n);
+					}
+				}
 			}
 		}
 
@@ -121,20 +140,20 @@ class Floor {
 			colorsWalls.push(new Point(0, f, 0.5));
 		}
 
+		obj = new Object(parent);
+
 		grid = new Polygon(pointsFloor, idxBufferFloor);
 		grid.colors = colorsFloor;
 		grid.addNormals();
 		grid.addUVs();
-		meshFloor = new Mesh(grid, mat, parent);
-		meshFloor.setPosition(gridSize * -0.5, gridSize * -0.5, 0.0);
+		meshFloor = new Mesh(grid, mat, obj);
 		collFloor = grid.getCollider();
 
 		var walls = new Polygon(pointsWalls, idxBufferWalls);
 		walls.colors = colorsWalls;
 		walls.uvs = uvsWalls;
 		walls.addNormals();
-		meshWalls = new Mesh(walls, mat, parent);
-		meshWalls.setPosition(gridSize * -0.5, gridSize * -0.5, 0.0);
+		meshWalls = new Mesh(walls, mat, obj);
 
 		// define water volumes:
 
@@ -235,6 +254,10 @@ class Floor {
 	//
 
 	public function addWater(x:Int, y:Int, water:Float) {
+		if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+			trace("coords " + x + "/" + y + " are not valid to add water!");
+			return;
+		}
 		var t = tiles[y * gridSize + x];
 		water = t.addWater(water);
 		t.wv.addWater(water, t);
@@ -242,6 +265,10 @@ class Floor {
 
 	// returns the amount of water that was not removed
 	public function removeWater(x:Int, y:Int, water:Float):Float {
+		if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+			trace("coords " + x + "/" + y + " are not valid to remove water!");
+			return -1.0;
+		}
 		var t = tiles[y * gridSize + x];
 		water = t.wv.removeWater(water);
 		return t.removeWater(water);
@@ -250,8 +277,8 @@ class Floor {
 	//
 
 	public function rayIntersection(ray:Ray):Float {
-		ray.px += gridSize * 0.5;
-		ray.py += gridSize * 0.5;
+		//ray.px += gridSize * 0.5;
+		//ray.py += gridSize * 0.5;
 		return collFloor.rayIntersection(ray, true);
 	}
 
@@ -259,8 +286,8 @@ class Floor {
 		var dist = rayIntersection(ray);
 		if (dist < 0) { return null; }
 		var point = ray.getPoint(dist);
-		var x = hxd.Math.floor(point.x);
-		var y = hxd.Math.floor(point.y);
+		var x = hxd.Math.round(point.x);
+		var y = hxd.Math.round(point.y);
 		return tiles[y * gridSize + x];
 	}
 }
