@@ -131,5 +131,7 @@ class Tree {
 		obj.setRotation(0, 0, rotation);
 		obj.setPosition(position.x, position.y, position.z);
 		mat = obj.getMaterials()[0];
+		var liveFactor = 1.0 - deathFactor;
+		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
 	}
 }

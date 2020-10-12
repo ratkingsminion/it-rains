@@ -132,19 +132,28 @@ class Floor {
 			}
 		}
 
-		perlin.normalize = true;
+		//perlin.normalize = true;
 		for (pf in pointsFloor) {
-			var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
-			f = (f * 0.5) + 0.5;
-			//trace(pf + " -> " + f);
-			colorsFloor.push(new Point(f, f, 0.5));
+		//	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
+		//	f = (f * 0.5) + 0.5;
+		//	//trace(pf + " -> " + f);
+		//	colorsFloor.push(new Point(f, f, 0.5));
+			if (pf.z > 0.0) {
+				var f = pf.z / mountainMaxHeight;
+				colorsFloor.push(new Point(f, 1.0, f));
+			}
+			else {
+				var f = -pf.z / valleyMaxDepth;
+				colorsFloor.push(new Point(1.0, 1.0 - f, 1.0 - f));
+			}
 		}
-
+//
 		for (pw in pointsWalls) {
-			//var f = (pw.z + 1.0) / (1.0 + 1.0);
-			var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
-			f = (f * 0.5) + 0.5;
-			colorsWalls.push(new Point(f, f, 0.5));
+		//	//var f = (pw.z + 1.0) / (1.0 + 1.0);
+		//	var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
+		//	f = (f * 0.5) + 0.5;
+		//	colorsWalls.push(new Point(f, f, 0.5));
+			colorsWalls.push(new Point(1, 1, 1));
 		}
 
 		obj = new Object(parent);

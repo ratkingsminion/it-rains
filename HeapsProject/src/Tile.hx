@@ -139,7 +139,7 @@ class Tile {
 			}
 			if (waterMesh.parent == null) { parent.addChild(waterMesh); }
 			//waterMesh.scaleZ = level;
-			waterMesh.z = level; // pos.z + level;
+			waterMesh.z = level + 0.05; // pos.z + level;
 			//trace(x + "/" + y + " " + level);
 		}
 		else {

@@ -42,6 +42,13 @@ class Cloud {
 		curPos.y = y;
 
 		curWait = waitTicksBeforeMove;
+
+		
+		//floor.addWater(6, 4, 4.0);
+		var rain = new Rain(obj);
+		//rain.parts.x = 6.5;
+		//rain.parts.y = 4.5;
+		//rain.parts.z = 8;
 	}
 
 	public function tick(windX:Int, windY:Int, dt:Float) {

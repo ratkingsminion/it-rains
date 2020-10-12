@@ -1,5 +1,7 @@
 package;
 
+import h2d.Object;
+import h3d.pass.DirShadowMap;
 import h3d.scene.fwd.DirLight;
 import hxd.fs.Convert.Command;
 import h3d.shader.ColorAdd;
@@ -39,8 +41,9 @@ class Main extends hxd.App {
 	var hoverObject:h3d.scene.Object;
 	var compass:Compass;
 	// camera
-	var camLight:PointLight;
-	var cursorLight:PointLight;
+	//var camLight:PointLight;
+	var dLightParent:h3d.scene.Object;
+	//var cursorLight:PointLight;
 	var camInputRotate = new Vector();
 	var camInputRotateLastMousePos:Vector = null;
 	var camInputMove = new Vector();
@@ -76,20 +79,23 @@ class Main extends hxd.App {
 		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
 		// lights
-		var directionalLight = new DirLight(new h3d.Vector(-0.3, -0.2, -1), s3d);
+		dLightParent = new h3d.scene.Object(s3d);
+		var dLight = new DirLight(new h3d.Vector(-0.3, -0.25, -0.4), dLightParent);
+		var shadow = s3d.renderer.getPass(DirShadowMap);
+		shadow.blur.radius = 3;
+		shadow.power = 5.0;
 		//s3d.lightSystem.ambientLight.set(1, 1, 1, 1);
-		//s3d.lightSystem.shadowLight.remove();
 		//
-		camLight = new PointLight(s3d);
-		camLight.color.setColor(0xffffff);
-		camLight.z = 2.0;
+		//camLight = new PointLight(s3d);
+		//camLight.color.setColor(0xffffff);
+		//camLight.z = 2.0;
 		//camLight.params.set(0, 0.25, 9.1);
 		//
-		cursorLight = new PointLight(s3d);
-		cursorLight.color.setColor(0x1111ff11);
-		cursorLight.z = 3.0;
-		cursorLight.params.set(2, 0.1, 0);
-
+		//cursorLight = new PointLight();
+		//cursorLight.color.setColor(0xffffff);
+		//cursorLight.z = 2.0;
+		//cursorLight.params.set(0, 0.1, 1.5);
+//
 #if debug
 		// debug information
 		layerDebug = new h2d.Object(s2d);
@@ -108,19 +114,15 @@ class Main extends hxd.App {
 		var hoverMat = Material.create();
 		hoverMat.color = new Vector(1, 1, 0, 0.5);
 		hoverMat.blendMode = Alpha;
-		hoverMat.castShadows = false;
+		hoverMat.receiveShadows = hoverMat.castShadows = false;
 		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
 
 		// TEST
-		//floor.addWater(6, 4, 4.0);
-		var rain = new Rain(floor.obj);
-		rain.parts.x = 6.5;
-		rain.parts.y = 4.5;
-		rain.parts.z = 8;
-		//addCloud(0, 0);
-		//addCloud(1, 1);
-		for (i in 0...floor.gridSize*floor.gridSize) {
-			//floor.tiles[i].addTree();
+		var treesStartCount = 10;
+		var i = 0;
+		while (i < treesStartCount) {
+			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
+			if (floor.tiles[r].addTree()) { i++; }
 		}
 
 		//
@@ -143,7 +145,7 @@ class Main extends hxd.App {
 		tickTimer += dt;
 		while (tickTimer > TICK_TIME) {
 			tickTimer -= TICK_TIME;
-			for (c in clouds) { c.tick(1, 0, TICK_TIME); } // TODO
+			for (c in clouds) { c.tick(0, -1, TICK_TIME); } // TODO
 			floor.tick(TICK_TIME);
 		}
 
@@ -166,7 +168,7 @@ class Main extends hxd.App {
 		var ray = s3d.camera.rayFromScreen(s2d.mouseX * Layout.SCALE, s2d.mouseY * Layout.SCALE);
 		hoveredTile = floor.rayTile(ray);
 		var p = ray.intersect(floor.plane);
-		if (p != null) { cursorLight.x = p.x; cursorLight.y = p.y; }
+		//if (p != null) { cursorLight.x = p.x; cursorLight.y = p.y; }
 
 		if (hoveredTile != null) {
 			if (Key.isDown(Key.T)) { floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5); }
@@ -190,8 +192,8 @@ class Main extends hxd.App {
 			camPosition.x = hxd.Math.clamp(camPosition.x - (Math.sin(camRotation.y) * camInputMove.y + Math.cos(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
 			camPosition.y = hxd.Math.clamp(camPosition.y - (Math.cos(camRotation.y) * camInputMove.y - Math.sin(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
 		}
-		camLight.x = camPosition.x;
-		camLight.y = camPosition.y;
+		//camLight.x = camPosition.x;
+		//camLight.y = camPosition.y;
 		camInputMove.x = camInputMove.y = 0.0;
 
 		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 30.0);
@@ -202,6 +204,8 @@ class Main extends hxd.App {
 			camPosition.y + Math.cos(camRotation.x) * Math.cos(camRotation.y) * camZoom,
 			camPosition.z + Math.sin(camRotation.x) * camZoom);
 		s3d.camera.target.set(camPosition.x, camPosition.y, camPosition.z);
+
+		dLightParent.setRotation(0, 0, -camRotation.y);
 
 		// other
 
@@ -226,7 +230,10 @@ class Main extends hxd.App {
 			if (event.kind == EventKind.EPush) {
 				var ray = s3d.camera.rayFromScreen(event.relX, event.relY);
 				var tile = floor.rayTile(ray);
-				if (tile != null) { tile.addTree(); }
+				if (tile != null) {
+					// tile.addTree();
+					addCloud(tile.x, tile.y);
+				}
 			}
 		}
 		else if (event.button == 1) {
