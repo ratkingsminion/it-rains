@@ -58,7 +58,7 @@ class Tree {
 
 		var waterToRemove = drinkNeededPerTick * dt;
 		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.35));
-		for (n in tile.neighbours) { waterNotRemoved = n.removeWater(n.wv.removeWater((waterToRemove * 0.65) / tile.neighbours.length)); }
+		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.65 / tile.neighbours.length)); }
 		var thirstFactor = (waterNotRemoved / waterToRemove);
 		var drownFactor = 0.0;
 		if (waterNotRemoved <= 0.0) {
@@ -82,7 +82,8 @@ class Tree {
 		}
 
 		if (growth < 1.0) {
-			growth = Math.min(growth + (1.0 - thirstFactor) * growthPerTick * dt, 1.0);
+			trace(deathFactor + " " + thirstFactor + " " + drownFactor);
+			growth = Math.min(growth + (1.0 - thirstFactor) * (1.0 - drownFactor) * growthPerTick * dt, 1.0);
 			if (index >= 4) { return; }
 			else if (index == 3 && growth >= 1.00) { change(4); }
 			else if (index == 2 && growth >= 0.75) { change(3); }

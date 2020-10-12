@@ -1,7 +1,10 @@
 package;
 
+import hxd.fs.Convert.Command;
+import h3d.shader.ColorAdd;
+import h3d.mat.Material;
+import h3d.prim.Cube;
 import h3d.col.Plane;
-import h2d.Object;
 import h2d.Text;
 import h3d.Engine;
 import h3d.scene.fwd.PointLight;
@@ -23,15 +26,18 @@ class Main extends hxd.App {
 	//
 #if debug
 	public var debugTxt(default, null):Text;
-	var layerDebug:Object;
+	var layerDebug:h2d.Object;
 #end
 #if js
     var canvas:CanvasElement;
 #end
 	var floor:Floor;
 	var clouds = new Array<Cloud>();
+	// HUD
 	var hoveredTile:Tile = null;
-	// caera
+	var hoverObject:h3d.scene.Object;
+	var compass:Compass;
+	// camera
 	var camLight:PointLight;
 	var cursorLight:PointLight;
 	var camInputRotate = new Vector();
@@ -72,7 +78,8 @@ class Main extends hxd.App {
 		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
 		// create the lights
-		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
+		s3d.lightSystem.ambientLight.set(1, 1, 1, 1);
+		s3d.lightSystem.shadowLight.remove();
 		//
 		camLight = new PointLight(s3d);
 		camLight.color.setColor(0xffffff);
@@ -86,21 +93,36 @@ class Main extends hxd.App {
 
 #if debug
 		// debug information
-		layerDebug = new Object(s2d);
+		layerDebug = new h2d.Object(s2d);
 		debugTxt = new Text(Layout.getFont(), layerDebug);
 		debugTxt.setPosition(25.0, 25.0);
 		debugTxt.setScale(0.5);
 #end
 
-		floor.addWater(6, 4, 4.0);
+		// compass
+		//new Compass(s3d);
+		compass = new Compass(s3d);
 
+		// hover
+		var hoverMesh = new Cube(1.1, 1.1, 0.5, true);
+		hoverMesh.addUVs(); hoverMesh.addNormals();
+		var hoverMat = Material.create();
+		hoverMat.color = new Vector(1, 1, 0, 0.5);
+		hoverMat.blendMode = Alpha;
+		hoverMat.castShadows = false;
+		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
+
+		// TEST
+		floor.addWater(6, 4, 4.0);
 		var rain = new Rain(floor.obj);
 		rain.parts.x = 6.5;
 		rain.parts.y = 4.5;
 		rain.parts.z = 8;
-
-		addCloud(0, 0);
-		addCloud(1, 1);
+		//addCloud(0, 0);
+		//addCloud(1, 1);
+		for (i in 0...floor.gridSize*floor.gridSize) {
+			//floor.tiles[i].addTree();
+		}
 
 		//
 
@@ -147,11 +169,14 @@ class Main extends hxd.App {
 		var p = ray.intersect(floor.plane);
 		if (p != null) { cursorLight.x = p.x; cursorLight.y = p.y; }
 
-		if (hoveredTile != null && Key.isDown(Key.T)) {
-			floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5);
+		if (hoveredTile != null) {
+			if (Key.isDown(Key.T)) { floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5); }
+			if (Key.isDown(Key.G)) { floor.removeWater(hoveredTile.x, hoveredTile.y, dt * 5); }
+			if (hoverObject.parent == null) { s3d.addChild(hoverObject); }
+			hoverObject.setPosition(hoveredTile.x, hoveredTile.y, hoveredTile.pos.z - 0.24);
 		}
-		if (hoveredTile != null && Key.isDown(Key.G)) {
-			floor.removeWater(hoveredTile.x, hoveredTile.y, dt * 5);
+		else {
+			if (hoverObject.parent != null) { hoverObject.remove(); }
 		}
 		
 		// camera
@@ -184,6 +209,8 @@ class Main extends hxd.App {
 		for (update in updates) {
 			update(dt);
 		}
+
+		compass.update(s3d.camera, dt);
 	}
 
 	//

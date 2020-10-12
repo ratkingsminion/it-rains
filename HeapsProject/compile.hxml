@@ -2,11 +2,11 @@
 -lib heaps
 -D debug
 #-js publish/game.js
-#-lib hldx
+-lib hldx
 #-lib noisehx
--lib hlsdl
+#-lib hlsdl
 -hl publish/game.hl
 -main Main
 --macro keep("h2d.Object")
-#-dce full
+-dce full
 #--cmd hl publish/game.h

@@ -37,6 +37,7 @@ class Floor {
 	var meshFloor:Mesh;
 	var collFloor:Collider;
 	var meshWalls:Mesh;
+	var collWall:Collider;
 
 	//
 
@@ -59,13 +60,15 @@ class Floor {
 	//
 
 	public function new(parent:Object, gridSize:Int = 10) {
-		var mat = Material.create(Layout.getTexture("floor2"));
+		var mat = Material.create(Layout.getTexture("floor4"));
 		mat.mainPass.addShader(new FloorShader());
 		mat.color = new Vector(1, 1, 1, 1);
+		//mat.castShadows = false;
 
 		this.gridSize = gridSize;
 
 		var pointsFloor = new Array<Point>();
+		var uvsFloor= new Array<UV>();
 		var colorsFloor = new Array<Point>();
 		var idxBufferFloor = new IndexBuffer();
 		var pointsWalls = new Array<Point>();
@@ -77,32 +80,35 @@ class Floor {
 
 		// create the grid and the tiles:
 
+		var g = gridSize - 1;
+
 		for (y in 0...gridSize) {
 			for (x in 0...gridSize) {
 				offset.set(x - 0.5, y - 0.5, 0.0);
 				var m  = getHeight(x + 0, y + 0);
-				addQuad4(pointsFloor, offset, 0.0, 0.0, 1.0, 1.0, idxBufferFloor, m, m, m, m); // middle quad
+				addQuad4(pointsFloor, uvsFloor, offset, 0.0, 0.0, 1.0, 1.0, idxBufferFloor, m, m, m, m); // middle quad
 
 				//
 
-				var l = getHeight(x - 1, y + 0);
-				var r = getHeight(x + 1, y + 0);
-				var b = getHeight(x + 0, y - 1);
-				var f = getHeight(x + 0, y + 1);
+				var min = -valleyMaxDepth - 0.2;
+				var l = x > 0 ? getHeight(x - 1, y + 0) : min; // m;
+				var r = x < g ? getHeight(x + 1, y + 0) : min; // m;
+				var b = y > 0 ? getHeight(x + 0, y - 1) : min; // m;
+				var f = y < g ? getHeight(x + 0, y + 1) : min; // m;
 				if (m - l > 0.0) {
-					addQuad4(pointsWalls, offset, 0.0, 1.0,  0.0, -1.0, idxBufferWalls, m, m, l, l);
+					addQuad4(pointsWalls, null, offset, 0.0, 1.0,  0.0, -1.0, idxBufferWalls, m, m, l, l);
 					uvsWalls.push(new UV(0.0, 0.0)); uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - l)); uvsWalls.push(new UV(0.0, m - l));
 				}
 				if (m - r > 0.0) {
-					addQuad4(pointsWalls, offset, 1.0, 0.0,  0.0,  1.0, idxBufferWalls, m, m, r, r);
+					addQuad4(pointsWalls, null, offset, 1.0, 0.0,  0.0,  1.0, idxBufferWalls, m, m, r, r);
 					uvsWalls.push(new UV(0.0, 0.0)); uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - r)); uvsWalls.push(new UV(0.0, m - r));
 				}
 				if (m - b > 0.0) {
-					addQuad4(pointsWalls, offset, 0.0, 0.0,  1.0,  0.0, idxBufferWalls, m, b, b, m);
+					addQuad4(pointsWalls, null, offset, 0.0, 0.0,  1.0,  0.0, idxBufferWalls, m, b, b, m);
 					uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - b)); uvsWalls.push(new UV(0.0, m - b)); uvsWalls.push(new UV(0.0, 0.0));
 				}
 				if (m - f > 0.0) {
-					addQuad4(pointsWalls, offset, 1.0, 1.0, -1.0,  0.0, idxBufferWalls, m, f, f, m);
+					addQuad4(pointsWalls, null, offset, 1.0, 1.0, -1.0,  0.0, idxBufferWalls, m, f, f, m);
 					uvsWalls.push(new UV(1.0, 0.0)); uvsWalls.push(new UV(1.0, m - f)); uvsWalls.push(new UV(0.0, m - f)); uvsWalls.push(new UV(0.0, 0.0));
 				}
 
@@ -131,22 +137,22 @@ class Floor {
 			var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
 			f = (f * 0.5) + 0.5;
 			//trace(pf + " -> " + f);
-			colorsFloor.push(new Point(0, f, 0.5));
+			colorsFloor.push(new Point(f, f, 0.5));
 		}
 
 		for (pw in pointsWalls) {
 			//var f = (pw.z + 1.0) / (1.0 + 1.0);
 			var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
 			f = (f * 0.5) + 0.5;
-			colorsWalls.push(new Point(0, f, 0.5));
+			colorsWalls.push(new Point(f, f, 0.5));
 		}
 
 		obj = new Object(parent);
 
 		grid = new Polygon(pointsFloor, idxBufferFloor);
 		grid.colors = colorsFloor;
+		grid.uvs = uvsFloor;
 		grid.addNormals();
-		grid.addUVs();
 		meshFloor = new Mesh(grid, mat, obj);
 		collFloor = grid.getCollider();
 
@@ -155,6 +161,7 @@ class Floor {
 		walls.uvs = uvsWalls;
 		walls.addNormals();
 		meshWalls = new Mesh(walls, mat, obj);
+		collWall = walls.getCollider();
 
 		// define water volumes:
 
@@ -165,12 +172,18 @@ class Floor {
 		return a.add(new Point(x, y, z));
 	}
 
-	inline function addQuad4(points:Array<Point>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0:Float = 0.0, z1:Float = 0.0, z2:Float = 0.0, z3:Float = 0.0) {
+	function addQuad4(points:Array<Point>, uvs:Array<UV>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0:Float = 0.0, z1:Float = 0.0, z2:Float = 0.0, z3:Float = 0.0) {
 		var idx = points.length;
 		points.push(add(offset, x + 0.0 * w, y + 1.0 * h, z0));
 		points.push(add(offset, x + 0.0 * w, y + 0.0 * h, z1));
 		points.push(add(offset, x + 1.0 * w, y + 0.0 * h, z2));
 		points.push(add(offset, x + 1.0 * w, y + 1.0 * h, z3));
+		if (uvs != null) {
+			uvs.push(new UV(0.0, 1.0));
+			uvs.push(new UV(0.0, 0.0));
+			uvs.push(new UV(1.0, 0.0));
+			uvs.push(new UV(1.0, 1.0));
+		}
 		idxBuffer.push(idx + 0); idxBuffer.push(idx + 1); idxBuffer.push(idx + 2);
 		idxBuffer.push(idx + 2); idxBuffer.push(idx + 3); idxBuffer.push(idx + 0);
 	}
@@ -281,8 +294,7 @@ class Floor {
 	//
 
 	public function rayIntersection(ray:Ray):Float {
-		//ray.px += gridSize * 0.5;
-		//ray.py += gridSize * 0.5;
+		if (collWall.rayIntersection(ray, true) >= 0.0) { return -1.0; }
 		return collFloor.rayIntersection(ray, true);
 	}
 
