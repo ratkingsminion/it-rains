@@ -1,5 +1,6 @@
 package;
 
+import h3d.pass.Outline;
 import h3d.col.Plane;
 import h3d.prim.UV;
 import h3d.Vector;
@@ -175,12 +176,15 @@ class Floor {
 	}
 
 	inline function getHeight(x:Float, y:Float):Float {
-		return perlin.gradient(2000, x * 0.35, y * 0.35);
-		//var pl = perlin.gradient(2000, x * 0.35, y * 0.35);
+		var pl = perlin.gradient(2000, x * 0.35, y * 0.35);
+
+		if (pl < 0.0) { pl *= valleyMaxDepth; }
+		else if (pl > 0.0) { pl *= mountainMaxHeight; }
+
 		//if (pl < mountainLimit && pl > -valleyLimit) { pl = 0.0; }
 		//else if (pl <= -valleyLimit) { pl = valleyMaxDepth * (pl + valleyLimit) / (1.0 - valleyLimit); }
 		//else if (pl >= mountainLimit) { pl = mountainMaxHeight * (pl - mountainLimit) / (1.0 - mountainLimit); }
-		//return pl;
+		return pl;
 		//return pl > 0 ? 1 :  pl < 0 ? -1 : 0;
 	}
 

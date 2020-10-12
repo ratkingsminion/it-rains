@@ -26,7 +26,7 @@ class Cloud {
 		mesh.addUVs();
 		mesh.addNormals();
 		obj = new Mesh(mesh, Material.create(), parent);
-		obj.setPosition(x, y, 3.0);
+		obj.setPosition(x, y, 2.0);
 		curPos.x = x;
 		curPos.y = y;
 		moveDir.x = dirX;
