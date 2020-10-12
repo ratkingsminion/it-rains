@@ -57,9 +57,9 @@ class Tree {
 		age += dt;
 
 		var waterToRemove = drinkNeededPerTick * dt;
-		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.35));
-		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.65 / tile.neighbours.length)); }
-		var thirstFactor = (waterNotRemoved / waterToRemove);
+		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.5));
+		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.5 / tile.neighbours.length)); }
+		var thirstFactor = waterNotRemoved / waterToRemove; // TODO get water where you can
 		var drownFactor = 0.0;
 		if (waterNotRemoved <= 0.0) {
 			drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
@@ -82,7 +82,7 @@ class Tree {
 		}
 
 		if (growth < 1.0) {
-			trace(deathFactor + " " + thirstFactor + " " + drownFactor);
+			//trace("l:" + deathFactor + " t:" + thirstFactor + " d:" + drownFactor);
 			growth = Math.min(growth + (1.0 - thirstFactor) * (1.0 - drownFactor) * growthPerTick * dt, 1.0);
 			if (index >= 4) { return; }
 			else if (index == 3 && growth >= 1.00) { change(4); }

@@ -53,7 +53,7 @@ class Tile {
 		if (tree != null) {
 			str += "\n\nThe tree on the soil is " + Helpers.floatToStringPrecision(tree.age, 1) + " days old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
 			if (tree.deathFactor > 0.0) {
-				str += "\nThe tree is at " + Std.int((1.0 - tree.deathFactor) * 100.0) + "% health - it is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating");
+				str += "\nThe tree is at " + Std.int((1.0 - tree.deathFactor) * 100.0) + "% health - it is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating") + ".";
 			}
 			else {
 				str += "\nThe tree is 100% healthy.";

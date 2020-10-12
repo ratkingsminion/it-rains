@@ -1,5 +1,6 @@
 package;
 
+import h3d.scene.fwd.DirLight;
 import hxd.fs.Convert.Command;
 import h3d.shader.ColorAdd;
 import h3d.mat.Material;
@@ -64,22 +65,20 @@ class Main extends hxd.App {
 #end
 
 		s2d.defaultSmooth = true;
-		hxd.Window.getInstance().addEventTarget(onEvent);
 		engine.backgroundColor = 0x112233;
 		engine.autoResize = true;
+		hxd.Window.getInstance().addEventTarget(onEvent);
 
-		Engine.ANTIALIASING = 4;
-		
-		//var floorTextures = [ for (i in 1...5) Layout.getTexture("floor" + i) ];
-		//for (t in floorTextures) { t.filter	= Filter.Nearest; } // make it pixely
-		//var floorMaterials = [ for (t in floorTextures) Material.create(t) ];
+		//Engine.ANTIALIASING = 4;
 
+		// floor
 		floor = new Floor(s3d);
 		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
-		// create the lights
-		s3d.lightSystem.ambientLight.set(1, 1, 1, 1);
-		s3d.lightSystem.shadowLight.remove();
+		// lights
+		var directionalLight = new DirLight(new h3d.Vector(-0.3, -0.2, -1), s3d);
+		//s3d.lightSystem.ambientLight.set(1, 1, 1, 1);
+		//s3d.lightSystem.shadowLight.remove();
 		//
 		camLight = new PointLight(s3d);
 		camLight.color.setColor(0xffffff);
@@ -88,7 +87,7 @@ class Main extends hxd.App {
 		//
 		cursorLight = new PointLight(s3d);
 		cursorLight.color.setColor(0x1111ff11);
-		cursorLight.z = 1.0;
+		cursorLight.z = 3.0;
 		cursorLight.params.set(2, 0.1, 0);
 
 #if debug
@@ -113,7 +112,7 @@ class Main extends hxd.App {
 		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
 
 		// TEST
-		floor.addWater(6, 4, 4.0);
+		//floor.addWater(6, 4, 4.0);
 		var rain = new Rain(floor.obj);
 		rain.parts.x = 6.5;
 		rain.parts.y = 4.5;
@@ -144,7 +143,7 @@ class Main extends hxd.App {
 		tickTimer += dt;
 		while (tickTimer > TICK_TIME) {
 			tickTimer -= TICK_TIME;
-			for (c in clouds) { c.tick(TICK_TIME); }
+			for (c in clouds) { c.tick(1, 0, TICK_TIME); } // TODO
 			floor.tick(TICK_TIME);
 		}
 
@@ -216,7 +215,7 @@ class Main extends hxd.App {
 	//
 
 	public function addCloud(x:Int, y:Int) {
-		var cloud = new Cloud(s3d, floor, x, y, 1, 0);
+		var cloud = new Cloud(s3d, floor, x, y);
 		clouds.push(cloud);
 	}
 

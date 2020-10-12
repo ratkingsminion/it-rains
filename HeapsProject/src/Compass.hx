@@ -16,11 +16,15 @@ class Compass {
 		obj = cache.loadModel(model);
 		parent.addChild(obj);
 		obj.scale(0.000004); // TODO
-		// material
+		// materials
 		var mat = obj.getMaterials()[0];
 		mat.castShadows = false;
 		mat.blendMode = Alpha;
 		mat.color = new Vector(0.2, 0.9, 1.0, 0.6);
+		var mat = obj.getMaterials()[1];
+		mat.castShadows = false;
+		mat.blendMode = Alpha;
+		mat.color = new Vector(0.9, 0.2, 1.0, 0.6);
 	}
 
 	public function update(cam:Camera, dt:Float) {

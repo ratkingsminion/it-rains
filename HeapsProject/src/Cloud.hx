@@ -18,12 +18,11 @@ class Cloud {
 	//
 	var floor:Floor;
 	var curPos = { x:0, y:0 };
-	var moveDir = { x:0, y:0 };
 	var curWait = 0.0;
 
 	//
 
-	public function new(parent:Object, floor:Floor, x:Int, y:Int, dirX:Int, dirY:Int) {
+	public function new(parent:Object, floor:Floor, x:Int, y:Int) {
 		this.floor = floor;
 		
 		var mesh = new Cube(0.9, 0.6, 0.2, true);
@@ -41,19 +40,17 @@ class Cloud {
 		obj.setPosition(x, y, 2.0);
 		curPos.x = x;
 		curPos.y = y;
-		moveDir.x = dirX;
-		moveDir.y = dirY;
 
 		curWait = waitTicksBeforeMove;
 	}
 
-	public function tick(dt:Float) {
+	public function tick(windX:Int, windY:Int, dt:Float) {
 		curWait -= dt;
 
 		if (curWait <= 0.0) {
 			curWait = waitTicksBeforeMove;
-			curPos.x += moveDir.x;
-			curPos.y += moveDir.y;
+			curPos.x += windX;
+			curPos.y += windY;
 			obj.x = curPos.x;
 			obj.y = curPos.y;
 		}
