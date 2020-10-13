@@ -1,5 +1,6 @@
 package;
 
+import hxd.Rand;
 import h3d.mat.Material;
 import h3d.Vector;
 import hxd.Res;
@@ -24,8 +25,8 @@ class Tree {
 	public var index(default, null):Int;
 	public var age(default, null) = 0.0;
 	public var growth(default, null) = 0.0;
-	public var isThirsty(default, null) = false;
-	public var isDrowning(default, null) = false;
+	public var thirstFactor(default, null) = 0.0;
+	public var drownFactor(default, null) = 0.0;
 	public var deathFactor(default, null) = 0.0;
 	//
 	var parchPerTick = 0.05;
@@ -35,12 +36,16 @@ class Tree {
 	var drinkNeededPerTick = 0.02;
 	var drownToleranceVolumeMin = 0.2;
 	var drownToleranceVolumeMax = 0.6;
+	var seedMinGrowth = 0.35;
+	var seedMaxDeathFactor = 0.8;
+	var seedWaitTicks = { min:3.0, max:5.0 };
 	//
 	var mat:Material;
 	var tile:Tile;
 	var parent:Object;
 	var rotation:Float;
 	var position:Point;
+	var seedWait = 0.0;
 
 	//
 
@@ -51,6 +56,7 @@ class Tree {
 		this.parent = parent;
 		rotation = hxd.Math.random(hxd.Math.PI * 2.0);
 		setIndex(index);
+		seedWait = seedWaitTicks.min + hxd.Math.random(seedWaitTicks.max);
 	}
 
 	public function tick(dt:Float) {
@@ -59,14 +65,13 @@ class Tree {
 		var waterToRemove = drinkNeededPerTick * dt;
 		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.5));
 		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.5 / tile.neighbours.length)); }
-		var thirstFactor = waterNotRemoved / waterToRemove; // TODO get water where you can
-		var drownFactor = 0.0;
-		if (waterNotRemoved <= 0.0) {
-			drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
-		}
+		
+		thirstFactor = waterNotRemoved / waterToRemove; // TODO get water where you can
+		drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
+		//drownFactor = waterNotRemoved > 0.0 ? 0.0 : hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
 
-		isThirsty = thirstFactor > 0.0;
-		isDrowning = drownFactor > 0.0;
+		var isThirsty = thirstFactor > 0.01;
+		var isDrowning = drownFactor > 0.01;
 
 		deathFactor = isThirsty || isDrowning
 			? Math.min(deathFactor + (parchPerTick * thirstFactor + drownPerTick * drownFactor) * dt, 1.0)
@@ -90,6 +95,27 @@ class Tree {
 			else if (index == 1 && growth >= 0.50) { change(2); }
 			else if (index == 0 && growth >= 0.25) { change(1); }
 		}
+
+		if (growth >= seedMinGrowth && deathFactor <= seedMaxDeathFactor) {
+			seedWait -= dt;
+			if (seedWait <= 0.0) {
+				trace("spawn new tree");
+				var ti = Std.int(hxd.Math.random(tile.directNeighbours.length));
+				tile.directNeighbours[ti].addTree();
+				seedWait += seedWaitTicks.min + hxd.Math.random(seedWaitTicks.max - seedWaitTicks.min);
+			}
+		}
+	}
+
+	public function info():String {
+		var str = "The tree on the soil is " + Helpers.floatToStringPrecision(age, 1) + " days old and has " + Helpers.floatToStringPrecision(growth * 100.0, 1) + "% growth.";
+		if (deathFactor > 0.0) {
+			str += "\nThe tree is at " + Std.int((1.0 - deathFactor) * 100.0) + "% health - it is " + Helpers.floatToStringPrecision(thirstFactor * 100.0, 1) + "% thirsty and " +  Helpers.floatToStringPrecision(drownFactor * 100.0, 1) + "% drowning.";
+		}
+		else {
+			str += "\nThe tree is 100% healthy.";
+		}
+		return str;
 	}
 
 	public function destroy() {
@@ -127,7 +153,7 @@ class Tree {
 
 		obj = cache.loadModel(MODELS[index].model);
 		parent.addChild(obj);
-		obj.scale(MODELS[index].scale * 0.01); // TODO
+		obj.scale(MODELS[index].scale * 0.01 * 0.75); // TODO
 		obj.setRotation(0, 0, rotation);
 		obj.setPosition(position.x, position.y, position.z);
 		mat = obj.getMaterials()[0];

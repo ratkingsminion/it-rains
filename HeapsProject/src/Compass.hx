@@ -34,4 +34,8 @@ class Compass {
 		var pos = cam.unproject(0.0, -0.8, 0.5);
 		obj.setPosition(pos.x, pos.y, pos.z);
 	}
+
+	public function changeDir(angle:Float) {
+		obj.setRotation(0.0, 0.0, hxd.Math.degToRad(angle));
+	}
 }

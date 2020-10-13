@@ -38,6 +38,7 @@ class Floor {
 	var collFloor:Collider;
 	var meshWalls:Mesh;
 	var collWall:Collider;
+	var perlinSeed:Int;
 
 	//
 
@@ -62,9 +63,11 @@ class Floor {
 	public function new(parent:Object, gridSize:Int = 10) {
 		var mat = Material.create(Layout.getTexture("floor4"));
 		mat.mainPass.addShader(new FloorShader());
-		mat.color = new Vector(1, 1, 1, 1);
+		//mat.color = new Vector(1, 1, 1, 1);
 		//mat.castShadows = false;
 
+		perlinSeed = Std.int(hxd.Math.srand(100000.0));
+		perlin.normalize = true;
 		this.gridSize = gridSize;
 
 		var pointsFloor = new Array<Point>();
@@ -124,36 +127,43 @@ class Floor {
 				for (yy in (y-1)...(y+2)) {
 					if (yy < 0 || yy >= gridSize) { continue; }
 					for (xx in (x-1)...(x+2)) {
+						if (xx == x && yy == y) { continue; }
 						if (xx < 0 || xx >= gridSize) { continue; }
 						var n = tiles[yy * gridSize + xx];
 						t.neighbours.push(n);
+						if (Math.abs(x - xx) != Math.abs(y - yy)) {
+							t.directNeighbours.push(n);
+						}
 					}
 				}
 			}
 		}
 
-		//perlin.normalize = true;
-		for (pf in pointsFloor) {
+		for (p in pointsFloor) {
 		//	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
 		//	f = (f * 0.5) + 0.5;
 		//	//trace(pf + " -> " + f);
 		//	colorsFloor.push(new Point(f, f, 0.5));
-			if (pf.z > 0.0) {
-				var f = pf.z / mountainMaxHeight;
+			if (p.z > 0.0) {
+				var f = p.z / mountainMaxHeight;
 				colorsFloor.push(new Point(f, 1.0, f));
 			}
 			else {
-				var f = -pf.z / valleyMaxDepth;
+				var f = -p.z / valleyMaxDepth;
 				colorsFloor.push(new Point(1.0, 1.0 - f, 1.0 - f));
 			}
 		}
-//
-		for (pw in pointsWalls) {
-		//	//var f = (pw.z + 1.0) / (1.0 + 1.0);
-		//	var f = perlin.gradient(10000, pw.x * 0.75, pw.y * 0.75);
-		//	f = (f * 0.5) + 0.5;
-		//	colorsWalls.push(new Point(f, f, 0.5));
+		
+		for (p in pointsWalls) {
 			colorsWalls.push(new Point(1, 1, 1));
+			//if (p.z > 0.0) {
+			//	var f = p.z / mountainMaxHeight;
+			//	colorsWalls.push(new Point(f, 1.0, f));
+			//}
+			//else {
+			//	var f = -p.z / valleyMaxDepth;
+			//	colorsWalls.push(new Point(1.0, 1.0 - f, 1.0 - f));
+			//}
 		}
 
 		obj = new Object(parent);
@@ -198,7 +208,7 @@ class Floor {
 	}
 
 	inline function getHeight(x:Float, y:Float):Float {
-		var pl = perlin.gradient(2000, x * 0.35, y * 0.35);
+		var pl = perlin.gradient(perlinSeed, x * 0.35, y * 0.35);
 
 		if (pl < 0.0) { pl *= valleyMaxDepth; }
 		else if (pl > 0.0) { pl *= mountainMaxHeight; }
@@ -279,14 +289,15 @@ class Floor {
 
 	//
 
-	public function addWater(x:Int, y:Int, water:Float) {
+	public function addWater(x:Int, y:Int, water:Float):Bool {
 		if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
 			trace("coords " + x + "/" + y + " are not valid to add water!");
-			return;
+			return false;
 		}
 		var t = tiles[y * gridSize + x];
 		water = t.addWater(water);
-		t.wv.addWater(water, t);
+		if (water > 0.0) { t.wv.addWater(water, t); }
+		return true;
 	}
 
 	// returns the amount of water that was not removed

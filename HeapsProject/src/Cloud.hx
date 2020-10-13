@@ -19,20 +19,21 @@ class Cloud {
 	var floor:Floor;
 	var curPos = { x:0, y:0 };
 	var curWait = 0.0;
+	var rain:Rain;
 
 	//
 
 	public function new(parent:Object, floor:Floor, x:Int, y:Int) {
 		this.floor = floor;
 		
-		var mesh = new Cube(0.9, 0.6, 0.2, true);
+		var mesh = new Cube(0.9, 0.6, 0.2, true); // TODO
 		mesh.addUVs();
 		mesh.addNormals();
 
 		if (material == null) {
 			material = Material.create();
 			material.blendMode = Alpha;
-			material.color = new Vector(1, 1, 1, 0.4);
+			material.color = new Vector(1, 1, 1, 0.7);
 			material.castShadows = false;
 		}
 
@@ -43,15 +44,10 @@ class Cloud {
 
 		curWait = waitTicksBeforeMove;
 
-		
-		//floor.addWater(6, 4, 4.0);
-		var rain = new Rain(obj);
-		//rain.parts.x = 6.5;
-		//rain.parts.y = 4.5;
-		//rain.parts.z = 8;
+		rain = new Rain(obj);
 	}
 
-	public function tick(windX:Int, windY:Int, dt:Float) {
+	public function tick(windX:Int, windY:Int, dt:Float):Bool {
 		curWait -= dt;
 
 		if (curWait <= 0.0) {
@@ -62,6 +58,11 @@ class Cloud {
 			obj.y = curPos.y;
 		}
 
-		floor.addWater(curPos.x, curPos.y, amountOfRainPerTick * dt);
+		return floor.addWater(curPos.x, curPos.y, amountOfRainPerTick * dt);
+	}
+
+	public function destroy() {
+		rain.destroy();
+		obj.remove();
 	}
 }

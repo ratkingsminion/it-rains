@@ -18,6 +18,7 @@ class Tile {
 	public var x(default, null):Int;
 	public var y(default, null):Int;
 	public var pos(default, null):Point;
+	public var directNeighbours(default, null):Array<Tile>;
 	public var neighbours(default, null):Array<Tile>;
 	public var wv:WaterVolume;
 	public var tree(default, null):Tree;
@@ -37,6 +38,7 @@ class Tile {
 		this.pos = pos;
 		this.parent = parent;
 		neighbours = new Array<Tile>();
+		directNeighbours = new Array<Tile>();
 	}
 
 	public function tick(dt:Float) {
@@ -50,15 +52,7 @@ class Tile {
 		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeAndAbove() * 100, 1) + " litres water above the tile, and " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
 		str += "\nThere is " + Helpers.floatToStringPrecision(waterLevel * 100, 1) + " litres water above the tile.";
 		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
-		if (tree != null) {
-			str += "\n\nThe tree on the soil is " + Helpers.floatToStringPrecision(tree.age, 1) + " days old and has " + Helpers.floatToStringPrecision(tree.growth * 100.0, 1) + "% growth.";
-			if (tree.deathFactor > 0.0) {
-				str += "\nThe tree is at " + Std.int((1.0 - tree.deathFactor) * 100.0) + "% health - it is " + (tree.isThirsty ? "thirsty" : tree.isDrowning ? "drowning" : "rejuvenating") + ".";
-			}
-			else {
-				str += "\nThe tree is 100% healthy.";
-			}
-		}
+		if (tree != null) { return str += "\n\n" + tree.info(); }
 		return str;
 	}
 
@@ -131,7 +125,7 @@ class Tile {
 				}
 				if (waterMaterial == null) {
 					waterMaterial = Material.create();
-					waterMaterial.color = Vector.fromColor(0x990000ff);
+					waterMaterial.color = Vector.fromColor(0x883333ff);
 					waterMaterial.blendMode = Alpha;
 				}
 				waterMesh = new Mesh(waterQuad, waterMaterial, parent);

@@ -23,6 +23,7 @@ import js.Browser;
 class Main extends hxd.App {
 	public static final VERSION = "v0.0.1";
 	public static final TICK_TIME = 0.2; // one second per tick
+	public static final WIND_CHANGE_AFTER_TICKS = 5.0;
 	//
 	public static var instance(default, null):Main;
 	public static var updates(default, null) = new Array<Float->Void>();
@@ -55,6 +56,8 @@ class Main extends hxd.App {
 	// time
 	var curTime = 0.0;
 	var tickTimer = -2.0;
+	var curWindDir = { x:0, y:-1 };
+	var windChangeTimer = 0.0;
 
 	//
 
@@ -124,13 +127,43 @@ class Main extends hxd.App {
 			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
 			if (floor.tiles[r].addTree()) { i++; }
 		}
+		changeWindDirRandomly();
 
 		//
 
 		onResize();
 	}
 
-    //
+	//
+	
+	function updateWind(dt:Float) {
+		windChangeTimer += dt;
+		if (windChangeTimer > WIND_CHANGE_AFTER_TICKS) {
+			windChangeTimer -= WIND_CHANGE_AFTER_TICKS;
+			changeWindDirRandomly();
+		}
+	}
+
+	function changeWindDirRandomly() {
+		switch (Std.int(hxd.Math.random(4.0))) {
+			case 0: curWindDir.x =  0; curWindDir.y =  1; compass.changeDir(180.0);
+			case 1: curWindDir.x =  1; curWindDir.y =  0; compass.changeDir(90.0);
+			case 2: curWindDir.x =  0; curWindDir.y = -1; compass.changeDir(0.0);
+			case 3: curWindDir.x = -1; curWindDir.y =  0; compass.changeDir(270.0);
+		}
+	}
+
+	function updateClouds(dt:Float) {
+		var i = clouds.length - 1;
+		while (i >= 0) {
+			var c = clouds[i];
+			if (!c.tick(curWindDir.x, curWindDir.y, dt)) {
+				c.destroy();
+				clouds.remove(c);
+			}
+			--i;
+		}
+	}
 
 	override function update(dt:Float) {
 #if js
@@ -145,7 +178,8 @@ class Main extends hxd.App {
 		tickTimer += dt;
 		while (tickTimer > TICK_TIME) {
 			tickTimer -= TICK_TIME;
-			for (c in clouds) { c.tick(0, -1, TICK_TIME); } // TODO
+			updateWind(TICK_TIME);
+			updateClouds(TICK_TIME);
 			floor.tick(TICK_TIME);
 		}
 

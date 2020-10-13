@@ -44,4 +44,8 @@ class Rain {
 
 		parts.addGroup(group);	
 	}
+
+	public function destroy() {
+		parts.remove();
+	}
 }
