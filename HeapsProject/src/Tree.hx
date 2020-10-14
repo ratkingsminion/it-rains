@@ -49,7 +49,7 @@ class Tree {
 
 	//
 
-	public function new(tile:Tile, index:Int, position:Point, parent:Object) {
+	public function new(tile:Tile, index:Int, position:Point, parent:Object, fromTree:Tree) {
 		this.tile = tile;
 		this.index = index;
 		this.position = position;
@@ -57,14 +57,25 @@ class Tree {
 		rotation = hxd.Math.random(hxd.Math.PI * 2.0);
 		setIndex(index);
 		seedWait = seedWaitTicks.min + hxd.Math.random(seedWaitTicks.max);
+		if (fromTree != null) {
+			var start = fromTree.position;
+			var pos = new Point();
+			Tweens.tween(0.0, 1.0, 0.5, f -> {
+				if (obj == null) { return; }
+				Floor.pointLerp2(pos, start, position, f);
+				pos.z += Math.sin(f * Math.PI) * 1.0;
+				obj.setPosition(pos.x, pos.y, pos.z);
+			}).ease(f -> f);
+		}
 	}
 
 	public function tick(dt:Float) {
 		age += dt;
 
 		var waterToRemove = drinkNeededPerTick * dt;
-		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.5));
+		var waterNotRemoved = 0.0;
 		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.5 / tile.neighbours.length)); }
+		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove - waterNotRemoved));
 		
 		thirstFactor = waterNotRemoved / waterToRemove; // TODO get water where you can
 		drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
@@ -101,7 +112,7 @@ class Tree {
 			if (seedWait <= 0.0) {
 				trace("spawn new tree");
 				var ti = Std.int(hxd.Math.random(tile.directNeighbours.length));
-				tile.directNeighbours[ti].addTree();
+				tile.directNeighbours[ti].addTree(this);
 				seedWait += seedWaitTicks.min + hxd.Math.random(seedWaitTicks.max - seedWaitTicks.min);
 			}
 		}
@@ -163,7 +174,9 @@ class Tree {
 		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
 		
 		Tweens.tween(0.0, 1.0, 0.7, f -> {
-			obj.setScale(scale + scale * Math.sin(f * Math.PI * 5.0) * Math.PI * 0.15 * (1 - f));
+			if (obj != null) {
+				obj.setScale(scale + scale * Math.sin(f * Math.PI * 5.0) * Math.PI * 0.15 * (1 - f));
+			}
 		});
 	}
 }

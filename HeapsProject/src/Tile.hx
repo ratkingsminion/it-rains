@@ -58,9 +58,9 @@ class Tile {
 
 	//
 
-	public function addTree():Bool {
+	public function addTree(fromTree:Tree = null):Bool {
 		if (tree != null) { return false; }
-		tree = new Tree(this, 0, pos, parent);
+		tree = new Tree(this, 0, pos, parent, fromTree);
 		return true;
 	}
 

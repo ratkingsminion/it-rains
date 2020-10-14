@@ -1,5 +1,12 @@
 package;
 
+import hxd.fmt.grd.Data.Color;
+import haxe.ds.Vector;
+import hxd.BitmapData;
+import haxe.io.BytesBuffer;
+import haxe.io.Bytes;
+import hxd.Pixels;
+import h3d.mat.Texture;
 import h3d.col.Plane;
 import h3d.prim.UV;
 import hxd.IndexBuffer;
@@ -31,6 +38,8 @@ class Floor {
 	var meshWalls:Mesh;
 	var collWall:Collider;
 	var perlinSeed:Int;
+	var fertility:Texture;
+	var fertilityPixels:Pixels;
 
 	//
 
@@ -41,6 +50,9 @@ class Floor {
 				var rest = t.wv.removeWater(Main.EVAPORATE_WATER_PER_TILE_AND_TICK * dt);
 				if (rest > 0.0) { t.removeWater(rest); }
 			}
+			//
+			var f = 1.0 - (t.curWater / t.maxWater);
+			fertilityPixels.setPixel(t.x, t.y, new h3d.Vector(f, 1.0, f , 1.0).toColor());
 		}
 
 		// probably growing trees
@@ -48,15 +60,23 @@ class Floor {
 		for (t in tiles) {
 			t.tick(dt);
 		}
+
+		fertility.uploadPixels(fertilityPixels);
 	}
 
 	//
 
 	public function new(parent:Object, gridSize:Int) {
-		var mat = Material.create(Layout.getTexture("floor4"));
-		mat.mainPass.addShader(new FloorShader());
-		//mat.color = new Vector(1, 1, 1, 1);
-		//mat.castShadows = false;
+		var matFloor = Material.create(Layout.getTexture("floor3"));
+		var fs = new FloorShader();
+		var bmpData = new BitmapData(gridSize, gridSize);
+		for (x in 0...gridSize) { for (y in 0...gridSize) { bmpData.setPixel(x, y, 0xffffff); } }
+		fertilityPixels = bmpData.getPixels();
+		fs.fertility = fertility = Texture.fromPixels(fertilityPixels);
+		fs.gridSize = gridSize;
+		matFloor.mainPass.addShader(fs);
+
+		var matWalls = Material.create(Layout.getTexture("floor4"));
 
 		perlinSeed = Std.int(hxd.Math.srand(100000.0));
 		perlin.normalize = true;
@@ -64,11 +84,11 @@ class Floor {
 
 		var pointsFloor = new Array<Point>();
 		var uvsFloor= new Array<UV>();
-		var colorsFloor = new Array<Point>();
+		//var colorsFloor = new Array<Point>();
 		var idxBufferFloor = new IndexBuffer();
 		var pointsWalls = new Array<Point>();
 		var uvsWalls = new Array<UV>();
-		var colorsWalls = new Array<Point>();
+		//var colorsWalls = new Array<Point>();
 		var idxBufferWalls = new IndexBuffer();
 
 		var offset = new Point();
@@ -131,67 +151,60 @@ class Floor {
 			}
 		}
 
-		inline function pointLerp(a:Point, b:Point, f:Float):Point {
-			a.x = a.x * (1.0 - f) + b.x * f;
-			a.y = a.y * (1.0 - f) + b.y * f;
-			a.z = a.z * (1.0 - f) + b.z * f;
-			return a;
-		}
+		//var colMountain = new Point(1.0, 1.0, 1.0);
+		//var colMiddle = new Point(0.1, 0.8, 0.0);
+		//var collValley = new Point(138 / 255.0, 51 / 255.0, 36 / 255.0);
+		//	// beaver: new Point(159 / 255.0, 129 / 255.0, 112 / 255.0); // https://en.wikipedia.org/wiki/Shades_of_brown
+		//for (p in pointsFloor) {
+		////	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
+		////	f = (f * 0.5) + 0.5;
+		////	//trace(pf + " -> " + f);
+		////	colorsFloor.push(new Point(f, f, 0.5));
+		//	if (p.z > 0.0) {
+		//		var f = p.z / mountainMaxHeight;
+		//		colorsFloor.push(pointLerp(colMiddle.clone(), colMountain, f)); //new Point(f, 1.0, f));
+		//	}
+		//	else {
+		//		var f = -p.z / valleyMaxDepth;
+		//		colorsFloor.push(pointLerp(colMiddle.clone(), collValley, f)); // new Point(1.0, 1.0 - f, 1.0 - f));
+		//	}
+		//}
+		//
+		//for (p in pointsWalls) {
+		//	colorsWalls.push(new Point(1, 1, 1));
+		//	//if (p.z > 0.0) {
+		//	//	var f = p.z / mountainMaxHeight;
+		//	//	colorsWalls.push(new Point(f, 1.0, f));
+		//	//}
+		//	//else {
+		//	//	var f = -p.z / valleyMaxDepth;
+		//	//	colorsWalls.push(new Point(1.0, 1.0 - f, 1.0 - f));
+		//	//}
+		//}
 
-		var colMountain = new Point(1.0, 1.0, 1.0);
-		var colMiddle = new Point(0.1, 0.8, 0.0);
-		var collValley = new Point(138 / 255.0, 51 / 255.0, 36 / 255.0);
-			// beaver: new Point(159 / 255.0, 129 / 255.0, 112 / 255.0); // https://en.wikipedia.org/wiki/Shades_of_brown
-		for (p in pointsFloor) {
-		//	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
-		//	f = (f * 0.5) + 0.5;
-		//	//trace(pf + " -> " + f);
-		//	colorsFloor.push(new Point(f, f, 0.5));
-			if (p.z > 0.0) {
-				var f = p.z / mountainMaxHeight;
-				colorsFloor.push(pointLerp(colMiddle.clone(), colMountain, f)); //new Point(f, 1.0, f));
-			}
-			else {
-				var f = -p.z / valleyMaxDepth;
-				colorsFloor.push(pointLerp(colMiddle.clone(), collValley, f)); // new Point(1.0, 1.0 - f, 1.0 - f));
-			}
-		}
-		
-		for (p in pointsWalls) {
-			colorsWalls.push(new Point(1, 1, 1));
-			//if (p.z > 0.0) {
-			//	var f = p.z / mountainMaxHeight;
-			//	colorsWalls.push(new Point(f, 1.0, f));
-			//}
-			//else {
-			//	var f = -p.z / valleyMaxDepth;
-			//	colorsWalls.push(new Point(1.0, 1.0 - f, 1.0 - f));
-			//}
-		}
-
-		// HACK for a bug
-		pointsFloor.push(new Point());
-		uvsFloor.push(new UV(0, 0));
-		colorsFloor.push(new Point());
-		pointsWalls.push(new Point());
-		uvsWalls.push(new UV(0, 0));
-		colorsWalls.push(new Point());
-		// HACK end
+		//// HACK for a bug
+		//pointsFloor.push(new Point());
+		//uvsFloor.push(new UV(0, 0));
+		//colorsFloor.push(new Point());
+		//pointsWalls.push(new Point());
+		//uvsWalls.push(new UV(0, 0));
+		//colorsWalls.push(new Point());
+		//// HACK end
 
 		obj = new Object(parent);
 
 		grid = new Polygon(pointsFloor, idxBufferFloor);
-		grid.colors = colorsFloor;
+		//grid.colors = colorsFloor;
 		grid.uvs = uvsFloor;
 		grid.addNormals();
-		meshFloor = new Mesh(grid, mat, obj);
+		meshFloor = new Mesh(grid, matFloor, obj);
 		collFloor = grid.getCollider();
 
 		var walls = new Polygon(pointsWalls, idxBufferWalls);
-		walls.colors = colorsWalls;
+		//walls.colors = colorsWalls;
 		walls.uvs = uvsWalls;
 		walls.addNormals();
-		meshWalls = new Mesh(walls, mat, obj);
+		meshWalls = new Mesh(walls, matWalls, obj);
 		collWall = walls.getCollider();
 
 		// define water volumes:
@@ -337,5 +350,20 @@ class Floor {
 		var x = hxd.Math.round(point.x);
 		var y = hxd.Math.round(point.y);
 		return tiles[y * gridSize + x];
+	}
+
+	// HELPERS
+
+	public static inline function pointLerp(a:Point, b:Point, f:Float):Point {
+		a.x = a.x * (1.0 - f) + b.x * f;
+		a.y = a.y * (1.0 - f) + b.y * f;
+		a.z = a.z * (1.0 - f) + b.z * f;
+		return a;
+	}
+
+	public static inline function pointLerp2(target:Point, a:Point, b:Point, f:Float) {
+		target.x = a.x * (1.0 - f) + b.x * f;
+		target.y = a.y * (1.0 - f) + b.y * f;
+		target.z = a.z * (1.0 - f) + b.z * f;
 	}
 }
