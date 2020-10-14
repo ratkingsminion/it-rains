@@ -1,5 +1,6 @@
 -cp src
 -D debug
+-lib tweenxcore
 -lib heaps
 # -js publish/game.js
 -hl publish/game.hl

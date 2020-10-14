@@ -7,6 +7,9 @@ import h3d.Vector;
 
 class Compass {
 	public var obj(default, null):Object;
+	public var yaw(default, null):Float = 0.0;
+
+	//
 
 	public function new(parent:Object) {
 		var cache = new h3d.prim.ModelCache();
@@ -36,6 +39,11 @@ class Compass {
 	}
 
 	public function changeDir(angle:Float) {
-		obj.setRotation(0.0, 0.0, hxd.Math.degToRad(angle));
+		yaw = hxd.Math.degToRad(angle);
+		obj.setRotation(0.0, 0.0, yaw);
+
+		Tweens.tween(0.0, 1.0, 0.4, f -> {
+			obj.setRotation(0.0, 0.0, yaw + Math.sin(f * Math.PI * 5.0) * Math.PI * 0.2 * (1 - f));
+		});
 	}
 }

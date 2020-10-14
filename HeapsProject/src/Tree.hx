@@ -152,12 +152,18 @@ class Tree {
 		}
 
 		obj = cache.loadModel(MODELS[index].model);
+		var scale = MODELS[index].scale * 0.01 * 0.8; // TODO?
+
 		parent.addChild(obj);
-		obj.scale(MODELS[index].scale * 0.01 * 0.75); // TODO
+		obj.setScale(scale);
 		obj.setRotation(0, 0, rotation);
 		obj.setPosition(position.x, position.y, position.z);
 		mat = obj.getMaterials()[0];
 		var liveFactor = 1.0 - deathFactor;
 		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
+		
+		Tweens.tween(0.0, 1.0, 0.7, f -> {
+			obj.setScale(scale + scale * Math.sin(f * Math.PI * 5.0) * Math.PI * 0.15 * (1 - f));
+		});
 	}
 }

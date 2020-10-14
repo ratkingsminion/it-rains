@@ -22,9 +22,12 @@ import js.Browser;
 
 class Main extends hxd.App {
 	public static final VERSION = "v0.0.1";
-	public static final TICK_TIME = 0.2; // one second per tick
+	public static final TICK_TIME = 0.1; // one second per tick
 	public static final WIND_CHANGE_AFTER_TICKS = 5.0;
+	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
+
 	//
+
 	public static var instance(default, null):Main;
 	public static var updates(default, null) = new Array<Float->Void>();
 	//
@@ -64,6 +67,9 @@ class Main extends hxd.App {
 	override function init() {
 		super.init();
 		
+		var floorGridSize = 10;
+		var treesStartCount = 10;
+
 #if js
   	 	canvas = cast Browser.document.getElementById("webgl");
         Browser.document.ondrag = e -> { e.preventDefault(); }
@@ -78,7 +84,7 @@ class Main extends hxd.App {
 		//Engine.ANTIALIASING = 4;
 
 		// floor
-		floor = new Floor(s3d);
+		floor = new Floor(s3d, floorGridSize);
 		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
 		// lights
@@ -108,7 +114,6 @@ class Main extends hxd.App {
 #end
 
 		// compass
-		//new Compass(s3d);
 		compass = new Compass(s3d);
 
 		// hover
@@ -121,7 +126,6 @@ class Main extends hxd.App {
 		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
 
 		// TEST
-		var treesStartCount = 10;
 		var i = 0;
 		while (i < treesStartCount) {
 			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
@@ -223,8 +227,8 @@ class Main extends hxd.App {
 		camInputRotate.x = camInputRotate.y = 0.0;
 
 		if (camInputMove.length() > 0.0) {
-			camPosition.x = hxd.Math.clamp(camPosition.x - (Math.sin(camRotation.y) * camInputMove.y + Math.cos(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
-			camPosition.y = hxd.Math.clamp(camPosition.y - (Math.cos(camRotation.y) * camInputMove.y - Math.sin(camRotation.y) * camInputMove.x) * dt, 0.0, floor.gridSize);
+			camPosition.x = hxd.Math.clamp(camPosition.x - (Math.sin(camRotation.y) * camInputMove.y + Math.cos(camRotation.y) * camInputMove.x) * dt, -0.5, floor.gridSize-0.5);
+			camPosition.y = hxd.Math.clamp(camPosition.y - (Math.cos(camRotation.y) * camInputMove.y - Math.sin(camRotation.y) * camInputMove.x) * dt, -0.5, floor.gridSize-0.5);
 		}
 		//camLight.x = camPosition.x;
 		//camLight.y = camPosition.y;
@@ -248,6 +252,9 @@ class Main extends hxd.App {
 		}
 
 		compass.update(s3d.camera, dt);
+
+		// tweens
+		Tweens.update(dt);
 	}
 
 	//

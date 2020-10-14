@@ -1,14 +1,9 @@
 package;
 
-import h3d.pass.Outline;
 import h3d.col.Plane;
 import h3d.prim.UV;
-import h3d.Vector;
-import haxe.macro.Compiler.NullSafetyMode;
-import format.bmp.Writer;
 import hxd.IndexBuffer;
 import h3d.col.Point;
-import format.gif.Data.PlainTextExtension;
 import h3d.prim.Polygon;
 import h3d.scene.Object;
 import h3d.col.Collider;
@@ -16,13 +11,10 @@ import h3d.mat.Material;
 import h3d.scene.Mesh;
 import h3d.col.Ray;
 import hxd.Perlin;
-import h3d.prim.Grid;
 
 class Floor {
 
-	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
-
-	public var gridSize(default, null) = 10;
+	public var gridSize(default, null):Int;
 	public var tiles(default, null) = new Array<Tile>();
 	public var obj(default, null):Object;
 	public var plane(default, null) = Plane.Z();
@@ -46,7 +38,7 @@ class Floor {
 		// vaporizing water
 		for (t in tiles) {
 			if (t.curWater > 0.0) {
-				var rest = t.wv.removeWater(EVAPORATE_WATER_PER_TILE_AND_TICK * dt);
+				var rest = t.wv.removeWater(Main.EVAPORATE_WATER_PER_TILE_AND_TICK * dt);
 				if (rest > 0.0) { t.removeWater(rest); }
 			}
 		}
@@ -60,7 +52,7 @@ class Floor {
 
 	//
 
-	public function new(parent:Object, gridSize:Int = 10) {
+	public function new(parent:Object, gridSize:Int) {
 		var mat = Material.create(Layout.getTexture("floor4"));
 		mat.mainPass.addShader(new FloorShader());
 		//mat.color = new Vector(1, 1, 1, 1);
@@ -139,6 +131,17 @@ class Floor {
 			}
 		}
 
+		inline function pointLerp(a:Point, b:Point, f:Float):Point {
+			a.x = a.x * (1.0 - f) + b.x * f;
+			a.y = a.y * (1.0 - f) + b.y * f;
+			a.z = a.z * (1.0 - f) + b.z * f;
+			return a;
+		}
+
+		var colMountain = new Point(1.0, 1.0, 1.0);
+		var colMiddle = new Point(0.1, 0.8, 0.0);
+		var collValley = new Point(138 / 255.0, 51 / 255.0, 36 / 255.0);
+			// beaver: new Point(159 / 255.0, 129 / 255.0, 112 / 255.0); // https://en.wikipedia.org/wiki/Shades_of_brown
 		for (p in pointsFloor) {
 		//	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
 		//	f = (f * 0.5) + 0.5;
@@ -146,11 +149,11 @@ class Floor {
 		//	colorsFloor.push(new Point(f, f, 0.5));
 			if (p.z > 0.0) {
 				var f = p.z / mountainMaxHeight;
-				colorsFloor.push(new Point(f, 1.0, f));
+				colorsFloor.push(pointLerp(colMiddle.clone(), colMountain, f)); //new Point(f, 1.0, f));
 			}
 			else {
 				var f = -p.z / valleyMaxDepth;
-				colorsFloor.push(new Point(1.0, 1.0 - f, 1.0 - f));
+				colorsFloor.push(pointLerp(colMiddle.clone(), collValley, f)); // new Point(1.0, 1.0 - f, 1.0 - f));
 			}
 		}
 		
@@ -165,6 +168,15 @@ class Floor {
 			//	colorsWalls.push(new Point(1.0, 1.0 - f, 1.0 - f));
 			//}
 		}
+
+		// HACK for a bug
+		pointsFloor.push(new Point());
+		uvsFloor.push(new UV(0, 0));
+		colorsFloor.push(new Point());
+		pointsWalls.push(new Point());
+		uvsWalls.push(new UV(0, 0));
+		colorsWalls.push(new Point());
+		// HACK end
 
 		obj = new Object(parent);
 
@@ -314,7 +326,7 @@ class Floor {
 	//
 
 	public function rayIntersection(ray:Ray):Float {
-		if (collWall.rayIntersection(ray, true) >= 0.0) { return -1.0; }
+		if (collWall != null &&  collWall.rayIntersection(ray, true) >= 0.0) { return -1.0; }
 		return collFloor.rayIntersection(ray, true);
 	}
 
