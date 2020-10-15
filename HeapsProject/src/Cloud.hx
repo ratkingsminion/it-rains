@@ -8,18 +8,18 @@ import h3d.scene.Object;
 
 class Cloud {
 
-	public static final CLOUD_HEIGHT_OVER_START_TILE = 2.0;
+	public static final CLOUD_HEIGHT_OVER_START_TILE = 1.5;
 
 	static var material:Material;
 
 	public var obj(default, null):Object;
+	public var curPos(default, null) = { x:0, y:0 };
 	//
 	var waitTicksBeforeMove = 2.0;
 	var amountOfRainPerTick = 1.0;
 	var z = 2;
 	//
 	var floor:Floor;
-	var curPos = { x:0, y:0 };
 	var curWait = 0.0;
 	var rain:Rain;
 
@@ -40,13 +40,22 @@ class Cloud {
 		}
 
 		obj = new Mesh(mesh, material, parent);
-		obj.setPosition(x, y, z + CLOUD_HEIGHT_OVER_START_TILE);
+		obj.setPosition(x, y, z);
 		curPos.x = x;
 		curPos.y = y;
 
 		curWait = waitTicksBeforeMove;
 
 		rain = new Rain(obj);
+
+		var scale = 1.0;
+		Tweens.tween(0.0, 1.0, 0.5, f -> {
+			if (obj != null) {
+				obj.z = z + CLOUD_HEIGHT_OVER_START_TILE * f;
+				obj.setScale(scale * f);
+				//obj.setScale(scale + scale * Math.sin(f * Math.PI * 5.0) * Math.PI * 0.15 * (1 - f));
+			}
+		});
 	}
 
 	public function tick(windX:Int, windY:Int, dt:Float):Bool {
@@ -69,6 +78,10 @@ class Cloud {
 						}
 					});
 				}
+				// get destroyed in water
+				if (nTile.pos.z + nTile.waterLevel > obj.z - 0.1) {
+					return false;
+				}
 			}
 			else {
 				return false;
@@ -80,6 +93,17 @@ class Cloud {
 
 	public function destroy() {
 		rain.destroy();
-		obj.remove();
+
+		var scale = 1.0;
+		var wobble = Tweens.tween(0.0, 1.0, 0.4, f -> {
+			if (obj != null) {
+				obj.setScale(scale * (1.0 - f));
+			}
+		});
+		wobble.onComplete(() -> {
+			if (obj != null) {
+				obj.remove();
+			}
+		});
 	}
 }

@@ -22,10 +22,12 @@ import js.Browser;
 #end
 
 class Main extends hxd.App {
-	public static final VERSION = "v0.0.1";
+	public static final VERSION = "v0.0.2";
 	public static final TICK_TIME = 0.1; // one second per tick
+	public static final TICK_SCALE = 1.0; // TODO
 	public static final GRID_SIZE = 10;
-	public static final WIND_CHANGE_AFTER_TICKS = 5.0;
+	public static final TREES_START_COUNT = 10;
+	public static final WIND_CHANGE_AFTER_TICKS = 7.5;
 	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
 
 	//
@@ -70,8 +72,6 @@ class Main extends hxd.App {
 
 	override function init() {
 		super.init();
-		
-		var treesStartCount = 10;
 
 #if js
   	 	canvas = cast Browser.document.getElementById("webgl");
@@ -130,10 +130,13 @@ class Main extends hxd.App {
 		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
 
 		// TEST
-		var i = 0;
-		while (i < treesStartCount) {
+		var treesCount = Math.min(TREES_START_COUNT, GRID_SIZE * GRID_SIZE);
+		while (treesCount > 0) {
 			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
-			if (floor.tiles[r].addTree()) { i++; }
+			if (floor.tiles[r].addTree()) {
+				floor.tiles[r].addWater(0.2);
+				treesCount--;
+			}
 		}
 		changeWindDirRandomly();
 
@@ -187,9 +190,10 @@ class Main extends hxd.App {
 			tickTimer += dt;
 			while (tickTimer > TICK_TIME) {
 				tickTimer -= TICK_TIME;
-				updateWind(TICK_TIME);
-				updateClouds(TICK_TIME);
-				floor.tick(TICK_TIME);
+				var tick = TICK_TIME * TICK_SCALE;
+				updateWind(tick);
+				updateClouds(tick);
+				floor.tick(tick);
 			}
 		}
 
@@ -272,11 +276,13 @@ class Main extends hxd.App {
 
 	//
 
-	public function addCloud(x:Int, y:Int) {
+	public function addCloud(x:Int, y:Int):Cloud {
+		for (c in clouds) { if (c.curPos.x == x && c.curPos.y == y) { return null; }}
 		var tile = floor.getTile(x, y);
-		if (tile == null) { return; }
-		var cloud = new Cloud(s3d, floor, x, y, tile.pos.z);
+		if (tile == null) { return null; }
+		var cloud = new Cloud(s3d, floor, x, y, tile.pos.z + tile.waterLevel);
 		clouds.push(cloud);
+		return cloud;
 	}
 
 	//

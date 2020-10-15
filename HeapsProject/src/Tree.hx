@@ -93,8 +93,8 @@ class Tree {
 
 		//var liveFactor = 1.0 - deathFactor;
 		//mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
-		shader.thirsty = thirstFactor;
-		shader.drowning = drownFactor;
+		shader.thirsty = deathFactor * thirstFactor;
+		shader.drowning = deathFactor * drownFactor;
 
 		if (deathFactor >= 1.0) {
 			tile.removeTree();

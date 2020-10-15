@@ -28,7 +28,7 @@ class Rain {
 		group.fadeOut = 0; // 10.8;
 		group.fadePower = 1;
 		//group.gravity = 1;
-		group.size = 0.35;	
+		group.size = 0.25;	
 		group.sizeRand = 0.01;
 
 		//group.rotSpeed = 10;
@@ -40,9 +40,12 @@ class Rain {
 		group.lifeRand = 0.1;
 		group.nparts = 100;
 
-		group.colorGradient = color == null ? (color = Texture.fromColor(0x5555ff, 0.8)) : color;
+		//group.colorGradient = color == null ? (color = Texture.fromColor(0x5555ff, 0.8)) : color;
+		group.colorGradient = color == null ? (color = Texture.fromColor(0x2222ff, 1.0)) : color;
 
-		parts.addGroup(group);	
+		parts.addGroup(group);
+
+		parts.material.blendMode = None;
 	}
 
 	public function destroy() {
