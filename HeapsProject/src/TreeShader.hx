@@ -7,10 +7,12 @@ class TreeShader extends hxsl.Shader {
 			var uv : Vec2;
 		};
 
-		var output : {
-			var color : Vec4;
-		};
+		//var output : {
+		//	var color : Vec4;
+		//};
 		
+		var pixelColor : Vec4;
+
 		//@param var color : Vec4;
 		@param var thirsty : Float;
 		@param var drowning : Float;
@@ -22,8 +24,8 @@ class TreeShader extends hxsl.Shader {
 		}
 
 		function fragment() {
-			var thirst = lerp(output.color, thirstyTex.get(input.uv), thirsty);
-			output.color = lerp(thirst, drowningTex.get(input.uv), drowning);
+			var thirst = lerp(pixelColor, thirstyTex.get(input.uv), thirsty);
+			pixelColor = lerp(thirst, drowningTex.get(input.uv), drowning);
 		}
     };
 }

@@ -8,6 +8,8 @@ import h3d.scene.Object;
 
 class Cloud {
 
+	public static final CLOUD_HEIGHT_OVER_START_TILE = 2.0;
+
 	static var material:Material;
 
 	public var obj(default, null):Object;
@@ -23,10 +25,10 @@ class Cloud {
 
 	//
 
-	public function new(parent:Object, floor:Floor, x:Int, y:Int) {
+	public function new(parent:Object, floor:Floor, x:Int, y:Int, z:Float) {
 		this.floor = floor;
 		
-		var mesh = new Cube(0.9, 0.6, 0.2, true); // TODO
+		var mesh = new Cube(0.9, 0.9, 0.2, true); // TODO
 		mesh.addUVs();
 		mesh.addNormals();
 
@@ -38,7 +40,7 @@ class Cloud {
 		}
 
 		obj = new Mesh(mesh, material, parent);
-		obj.setPosition(x, y, 2.0);
+		obj.setPosition(x, y, z + CLOUD_HEIGHT_OVER_START_TILE);
 		curPos.x = x;
 		curPos.y = y;
 
@@ -52,10 +54,25 @@ class Cloud {
 
 		if (curWait <= 0.0) {
 			curWait = waitTicksBeforeMove;
-			curPos.x += windX;
-			curPos.y += windY;
-			obj.x = curPos.x;
-			obj.y = curPos.y;
+			var nTile = floor.getTile(curPos.x + windX, curPos.y + windY);
+			if (nTile != null) {
+				if (nTile.pos.z < obj.z - 0.1) {
+					curPos.x = nTile.x;
+					curPos.y = nTile.y;
+					// anim
+					var startX:Float = obj.x;
+					var startY:Float = obj.y;
+					Tweens.tween(0.0, 1.0, 0.2, f -> {
+						if (obj != null) {
+							obj.x = hxd.Math.lerp(startX, nTile.x, f);
+							obj.y = hxd.Math.lerp(startY, nTile.y, f);
+						}
+					});
+				}
+			}
+			else {
+				return false;
+			}
 		}
 
 		return floor.addWater(curPos.x, curPos.y, amountOfRainPerTick * dt);

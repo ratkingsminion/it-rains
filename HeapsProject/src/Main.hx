@@ -56,9 +56,9 @@ class Main extends hxd.App {
 	var camInputMove = new Vector();
 	var camInputMoveLastMousePos:Vector = null;
 	var camInputZoom = 0.0;
-	var camRotation = new Vector(0.5, 0.0, 0.0);
+	var camRotation = new Vector(0.65, Math.PI * 0.2);
 	var camPosition = new Vector(0.0, 0.0, 0.0);
-	var camZoom = 20.0;
+	var camZoom = 25.0;
 	// time
 	var curTime = 0.0;
 	var tickTimer = 0.0;
@@ -247,7 +247,7 @@ class Main extends hxd.App {
 		//camLight.y = camPosition.y;
 		camInputMove.x = camInputMove.y = 0.0;
 
-		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 30.0);
+		camZoom = hxd.Math.clamp(camZoom + camInputZoom * dt, 5.0, 35.0);
 		camInputZoom = 0.0;
 
 		s3d.camera.pos.set(
@@ -273,7 +273,9 @@ class Main extends hxd.App {
 	//
 
 	public function addCloud(x:Int, y:Int) {
-		var cloud = new Cloud(s3d, floor, x, y);
+		var tile = floor.getTile(x, y);
+		if (tile == null) { return; }
+		var cloud = new Cloud(s3d, floor, x, y, tile.pos.z);
 		clouds.push(cloud);
 	}
 

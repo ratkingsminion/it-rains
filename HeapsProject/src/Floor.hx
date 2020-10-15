@@ -151,7 +151,7 @@ class Floor {
 					for (xx in (x-1)...(x+2)) {
 						if (xx == x && yy == y) { continue; }
 						if (xx < 0 || xx >= gridSize) { continue; }
-						var n = tiles[yy * gridSize + xx];
+						var n = getTile(xx, yy);
 						t.neighbours.push(n);
 						if (Math.abs(x - xx) != Math.abs(y - yy)) {
 							t.directNeighbours.push(n);
@@ -203,7 +203,7 @@ class Floor {
 	}
 
 	inline function getHeight(x:Float, y:Float):Float {
-		var pl = perlin.gradient(perlinSeed, x * 0.35, y * 0.35);
+		var pl = perlin.gradient(perlinSeed, (x + gridSize) * 0.35, (y + gridSize) * 0.35);
 
 		if (pl < 0.0) { pl *= valleyMaxDepth; }
 		else if (pl > 0.0) { pl *= mountainMaxHeight; }
@@ -284,12 +284,19 @@ class Floor {
 
 	//
 
-	public function addWater(x:Int, y:Int, water:Float):Bool {
+	public function getTile(x:Int, y:Int):Tile {
 		if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+			return null;
+		}
+		return tiles[y * gridSize + x];
+	}
+
+	public function addWater(x:Int, y:Int, water:Float):Bool {
+		var t = getTile(x, y);
+		if (t == null) {
 			trace("coords " + x + "/" + y + " are not valid to add water!");
 			return false;
 		}
-		var t = tiles[y * gridSize + x];
 		water = t.addWater(water);
 		if (water > 0.0) { t.wv.addWater(water, t); }
 		return true;
@@ -297,11 +304,11 @@ class Floor {
 
 	// returns the amount of water that was not removed
 	public function removeWater(x:Int, y:Int, water:Float):Float {
-		if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+		var t = getTile(x, y);
+		if (t == null) {
 			trace("coords " + x + "/" + y + " are not valid to remove water!");
 			return -1.0;
 		}
-		var t = tiles[y * gridSize + x];
 		water = t.wv.removeWater(water);
 		return t.removeWater(water);
 	}
@@ -309,8 +316,10 @@ class Floor {
 	//
 
 	public function rayIntersection(ray:Ray):Float {
-		if (collWall != null &&  collWall.rayIntersection(ray, true) >= 0.0) { return -1.0; }
-		return collFloor.rayIntersection(ray, true);
+		var w = collWall.rayIntersection(ray, true);
+		var f = collFloor.rayIntersection(ray, true);
+		if (w > 0.0 && w < f) { return -1.0; }
+		return f;
 	}
 
 	public function rayTile(ray:Ray):Tile {

@@ -7,10 +7,12 @@ class FloorShader extends hxsl.Shader {
 			var position : Vec3;
 		};
 
-		var output : {
-			var color : Vec4;
-		};
-		
+		//var output : {
+		//	var color : Vec4;
+		//};
+
+		var pixelColor : Vec4;
+
 		//@param var color : Vec4;
 		@param var fertility : Sampler2D;
 		@param var gridSize : Float;
@@ -22,7 +24,7 @@ class FloorShader extends hxsl.Shader {
 				(input.position.y + 0.5) / gridSize
 			);
 			
-			output.color *= fertility.get(uv);
+			pixelColor *= fertility.get(uv);
 		}
     };
 }
