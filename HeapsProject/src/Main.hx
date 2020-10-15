@@ -1,5 +1,6 @@
 package;
 
+import h2d.Graphics;
 import h2d.Object;
 import h3d.pass.DirShadowMap;
 import h3d.scene.fwd.DirLight;
@@ -23,6 +24,7 @@ import js.Browser;
 class Main extends hxd.App {
 	public static final VERSION = "v0.0.1";
 	public static final TICK_TIME = 0.1; // one second per tick
+	public static final GRID_SIZE = 10;
 	public static final WIND_CHANGE_AFTER_TICKS = 5.0;
 	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
 
@@ -34,6 +36,7 @@ class Main extends hxd.App {
 #if debug
 	public var debugTxt(default, null):Text;
 	var layerDebug:h2d.Object;
+	var dbgGfx:Graphics;
 #end
 #if js
     var canvas:CanvasElement;
@@ -58,16 +61,16 @@ class Main extends hxd.App {
 	var camZoom = 20.0;
 	// time
 	var curTime = 0.0;
-	var tickTimer = -2.0;
+	var tickTimer = 0.0;
 	var curWindDir = { x:0, y:-1 };
 	var windChangeTimer = 0.0;
+	var paused = false;
 
 	//
 
 	override function init() {
 		super.init();
 		
-		var floorGridSize = 10;
 		var treesStartCount = 10;
 
 #if js
@@ -84,7 +87,7 @@ class Main extends hxd.App {
 		//Engine.ANTIALIASING = 4;
 
 		// floor
-		floor = new Floor(s3d, floorGridSize);
+		floor = new Floor(s3d, GRID_SIZE);
 		camPosition.x = camPosition.y = floor.gridSize * 0.5;
 
 		// lights
@@ -111,8 +114,9 @@ class Main extends hxd.App {
 		debugTxt = new Text(Layout.getFont(), layerDebug);
 		debugTxt.setPosition(25.0, 25.0);
 		debugTxt.setScale(0.5);
-#end
 
+		dbgGfx = new Graphics(s2d);
+#end
 		// compass
 		compass = new Compass(s3d);
 
@@ -178,14 +182,23 @@ class Main extends hxd.App {
         }
 #end
 
-		curTime += dt;
-		tickTimer += dt;
-		while (tickTimer > TICK_TIME) {
-			tickTimer -= TICK_TIME;
-			updateWind(TICK_TIME);
-			updateClouds(TICK_TIME);
-			floor.tick(TICK_TIME);
+		if (!paused) {
+			curTime += dt;
+			tickTimer += dt;
+			while (tickTimer > TICK_TIME) {
+				tickTimer -= TICK_TIME;
+				updateWind(TICK_TIME);
+				updateClouds(TICK_TIME);
+				floor.tick(TICK_TIME);
+			}
 		}
+
+		//var size = 10;
+		//var pixels = floor.fs.fertility.capturePixels();
+		//for (t in floor.tiles) {
+		//	dbgGfx.beginFill(pixels.getPixel(t.x, t.y), 1);
+		//	dbgGfx.drawRect(t.x * size, t.y * size, size, size);
+		//}
 
 #if debug
 		var dbgStr = "";
@@ -245,7 +258,7 @@ class Main extends hxd.App {
 
 		dLightParent.setRotation(0, 0, -camRotation.y);
 
-		// other
+		// other)
 
 		for (update in updates) {
 			update(dt);
@@ -308,6 +321,7 @@ class Main extends hxd.App {
 		if (event.kind == EventKind.EKeyDown) {
 			if (event.keyCode >= Key.F1 && event.keyCode <= Key.F12) { return; } // don't block F keys
 			if (event.keyCode >= Key.NUMBER_0 && event.keyCode <= Key.NUMBER_9) { return; } // don't block numbers
+			if (event.keyCode == Key.SPACE) { paused = !paused; }
 			switch (event.keyCode) {
 				case Key.W, Key.UP: camInputZoom = -1;
 				case Key.S, Key.DOWN: camInputZoom = 1;

@@ -10,6 +10,7 @@ import h3d.scene.Object;
 import h3d.prim.ModelCache;
 
 class Tree {
+	public static final TWEEN_SECONDS_SEED = 0.5;
 	public static final AGE_COUNT = 5;
 	static final MODELS = [
 		{ name:"Tree_01_01", scale:0.48, model:null },
@@ -31,7 +32,7 @@ class Tree {
 	//
 	var parchPerTick = 0.05;
 	var drownPerTick = 0.05;
-	var rejuvenatePerTick = 0.01;
+	var rejuvenatePerTick = 0.04;
 	var growthPerTick = 0.02;
 	var drinkNeededPerTick = 0.02;
 	var drownToleranceVolumeMin = 0.2;
@@ -40,7 +41,8 @@ class Tree {
 	var seedMaxDeathFactor = 0.8;
 	var seedWaitTicks = { min:3.0, max:5.0 };
 	//
-	var mat:Material;
+	//var mat:Material;
+	var shader:TreeShader;
 	var tile:Tile;
 	var parent:Object;
 	var rotation:Float;
@@ -60,7 +62,7 @@ class Tree {
 		if (fromTree != null) {
 			var start = fromTree.position;
 			var pos = new Point();
-			Tweens.tween(0.0, 1.0, 0.5, f -> {
+			Tweens.tween(0.0, 1.0, TWEEN_SECONDS_SEED, f -> {
 				if (obj == null) { return; }
 				Floor.pointLerp2(pos, start, position, f);
 				pos.z += Math.sin(f * Math.PI) * 1.0;
@@ -74,8 +76,9 @@ class Tree {
 
 		var waterToRemove = drinkNeededPerTick * dt;
 		var waterNotRemoved = 0.0;
-		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater(waterToRemove * 0.5 / tile.neighbours.length)); }
-		var waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove - waterNotRemoved));
+		var nc:Float = tile.neighbours.length;
+		for (n in tile.neighbours) { waterNotRemoved += n.removeWater(n.wv.removeWater((waterToRemove * 0.5) / nc)); }
+		waterNotRemoved = tile.removeWater(tile.wv.removeWater(waterToRemove * 0.5 + waterNotRemoved));
 		
 		thirstFactor = waterNotRemoved / waterToRemove; // TODO get water where you can
 		drownFactor = hxd.Math.clamp((tile.waterLevel - drownToleranceVolumeMin) / drownToleranceVolumeMax, 0.0, 1.0);
@@ -88,9 +91,10 @@ class Tree {
 			? Math.min(deathFactor + (parchPerTick * thirstFactor + drownPerTick * drownFactor) * dt, 1.0)
 			: Math.max(deathFactor - rejuvenatePerTick * dt, 0.0);
 
-		var liveFactor = 1.0 - deathFactor;
-		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
-
+		//var liveFactor = 1.0 - deathFactor;
+		//mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
+		shader.thirsty = thirstFactor;
+		shader.drowning = drownFactor;
 
 		if (deathFactor >= 1.0) {
 			tile.removeTree();
@@ -110,7 +114,6 @@ class Tree {
 		if (growth >= seedMinGrowth && deathFactor <= seedMaxDeathFactor) {
 			seedWait -= dt;
 			if (seedWait <= 0.0) {
-				trace("spawn new tree");
 				var ti = Std.int(hxd.Math.random(tile.directNeighbours.length));
 				tile.directNeighbours[ti].addTree(this);
 				seedWait += seedWaitTicks.min + hxd.Math.random(seedWaitTicks.max - seedWaitTicks.min);
@@ -169,14 +172,19 @@ class Tree {
 		obj.setScale(scale);
 		obj.setRotation(0, 0, rotation);
 		obj.setPosition(position.x, position.y, position.z);
-		mat = obj.getMaterials()[0];
-		var liveFactor = 1.0 - deathFactor;
-		mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
+		var mat = obj.getMaterials()[0];
+		shader = new TreeShader();
+		shader.thirstyTex = Layout.getTexture("Colorsheet Tree Dry");
+		shader.drowningTex = Layout.getTexture("Colorsheet Tree Drown");
+		mat.mainPass.addShader(shader);
+		//var liveFactor = 1.0 - deathFactor;
+		//mat.color = new Vector(1 * liveFactor, 1 * liveFactor, 1 * liveFactor, 1 * liveFactor);
 		
-		Tweens.tween(0.0, 1.0, 0.7, f -> {
+		var wobble = Tweens.tween(0.0, 1.0, 0.7, f -> {
 			if (obj != null) {
 				obj.setScale(scale + scale * Math.sin(f * Math.PI * 5.0) * Math.PI * 0.15 * (1 - f));
 			}
 		});
+		if (index == 0) { wobble.setDelay(TWEEN_SECONDS_SEED); }
 	}
 }

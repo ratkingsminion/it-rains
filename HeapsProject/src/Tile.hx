@@ -1,6 +1,6 @@
 package;
 
-import format.abc.Data.ABCData;
+import haxe.ds.IntMap;
 import h3d.prim.UV;
 import h3d.prim.Quads;
 import h3d.col.Point;
@@ -12,7 +12,7 @@ import h3d.scene.Object;
 
 class Tile {
 	
-	static var waterQuad:Quads;
+	static var waterQuads:IntMap<Quads> = new IntMap<Quads>();
 	static var waterMaterial:Material;
 
 	public var x(default, null):Int;
@@ -105,35 +105,41 @@ class Tile {
 		return 0.0;
 	}
 
-	// this oly adds a quad, for visualizing the water
+	// this only adds a quad, for visualizing the water
 	@:allow(WaterVolume)
 	function setWaterLevel(level:Float) {
 		waterLevel = Math.max(0.0, level - pos.z);
 		if (waterLevel > 0.0) {
 			if (waterMesh == null) {
-				if (waterQuad == null) {
-					var min = -0.5;
-					var max = 0.5;
-					waterQuad = new Quads(
-						//[ new Point(-0.5, -0.5, 0.0), new Point(0.5, -0.5, 0.0), new Point(-0.5, 0.5, 0.0), new Point(0.5, 0.5, 0.0) ], // points
-						[ new Point(min, min), new Point(max, min), new Point(min, max), new Point(max, max) ], // points
-						[ new UV(0, 0), new UV(1, 0), new UV(0, 1), new UV(1, 1) ], // uvs
-						[ new Point(0, 0, 1), new Point(0, 0, 1), new Point(0, 0, 1), new Point(0, 0, 1) ] // normals
-					);
-					//cube.addNormals();
-					//cube.addUVs();
+				var idx = 0x0;
+				if (x == 0) { idx = idx | 0x01; }
+				if (x == Main.GRID_SIZE - 1) { idx = idx | 0x02; }
+				if (y == 0) { idx = idx | 0x04; }
+				if (y == Main.GRID_SIZE - 1) { idx = idx | 0x08; }
+				if (!waterQuads.exists(idx)) {
+					var min = -0.5, max = 0.5;
+					var wp = [ new Point(min, min, 1.0), new Point(max, min, 1.0), new Point(min, max, 1.0), new Point(max, max, 1.0) ]; // top
+					if (x == 0) { wp.push(new Point(min, min, 0.0)); wp.push(new Point(min, min, 1.0)); wp.push(new Point(min, max, 0.0)); wp.push(new Point(min, max, 1.0)); } // left
+					if (x == Main.GRID_SIZE - 1) { wp.push(new Point(max, min, 1.0)); wp.push(new Point(max, min, 0.0)); wp.push(new Point(max, max, 1.0)); wp.push(new Point(max, max, 0.0)); } // right
+					if (y == 0) { wp.push(new Point(min, min, 1.0)); wp.push(new Point(min, min, 0.0)); wp.push(new Point(max, min, 1.0)); wp.push(new Point(max, min, 0.0)); } // back
+					if (y == Main.GRID_SIZE - 1) { wp.push(new Point(min, max, 0.0)); wp.push(new Point(min, max, 1.0)); wp.push(new Point(max, max, 0.0)); wp.push(new Point(max, max, 1.0)); } // front
+					var wq = new Quads(wp);
+					wq.addNormals();
+					wq.addUVs();
+					waterQuads.set(idx, wq);
 				}
 				if (waterMaterial == null) {
 					waterMaterial = Material.create();
 					waterMaterial.color = Vector.fromColor(0x883333ff);
+					waterMaterial.mainPass.addShader(new WaterShader());
 					waterMaterial.blendMode = Alpha;
 				}
-				waterMesh = new Mesh(waterQuad, waterMaterial, parent);
-				waterMesh.setPosition(pos.x, pos.y, 0.0);
+				waterMesh = new Mesh(waterQuads.get(idx), waterMaterial, parent);
+				waterMesh.setPosition(pos.x, pos.y, pos.z);
 			}
 			if (waterMesh.parent == null) { parent.addChild(waterMesh); }
 			//waterMesh.scaleZ = level;
-			waterMesh.z = level + 0.05; // pos.z + level;
+			waterMesh.scaleZ = waterLevel + 0.01; // pos.z + level;
 			//trace(x + "/" + y + " " + level);
 		}
 		else {

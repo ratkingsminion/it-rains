@@ -21,10 +21,14 @@ import hxd.Perlin;
 
 class Floor {
 
+	public static final COLOR_GREEN = h3d.Vector.fromColor(0xff44dd22);
+	public static final COLOR_BROWN = h3d.Vector.fromColor(0xff954535);
+
 	public var gridSize(default, null):Int;
 	public var tiles(default, null) = new Array<Tile>();
 	public var obj(default, null):Object;
 	public var plane(default, null) = Plane.Z();
+	public var fs(default, null):FloorShader;
 	//
 	final mountainLimit = 0.3;
 	final mountainMaxHeight = 2.0;
@@ -45,34 +49,40 @@ class Floor {
 
 	public function tick(dt:Float) {
 		// vaporizing water
+		var col = new h3d.Vector();
 		for (t in tiles) {
 			if (t.curWater > 0.0) {
 				var rest = t.wv.removeWater(Main.EVAPORATE_WATER_PER_TILE_AND_TICK * dt);
 				if (rest > 0.0) { t.removeWater(rest); }
 			}
-			//
-			var f = 1.0 - (t.curWater / t.maxWater);
-			fertilityPixels.setPixel(t.x, t.y, new h3d.Vector(f, 1.0, f , 1.0).toColor());
+			// colorize the floor
+			col.set(1.0, 1.0, 1.0, 1.0);
+			vectorLerp(col, COLOR_GREEN, t.curWater / t.maxWater); // green when it has water
+			vectorLerp(col, COLOR_BROWN, hxd.Math.clamp(t.waterLevel / 0.3, 0.0, 1.0)); // brown if it's under water
+			fertilityPixels.setPixel(t.x, t.y, col.toColor());
 		}
+
+		fertility.uploadPixels(fertilityPixels);
 
 		// probably growing trees
 		// TODO shuffling?
 		for (t in tiles) {
 			t.tick(dt);
 		}
-
-		fertility.uploadPixels(fertilityPixels);
 	}
 
 	//
 
 	public function new(parent:Object, gridSize:Int) {
 		var matFloor = Material.create(Layout.getTexture("floor3"));
-		var fs = new FloorShader();
+		fs = new FloorShader();
 		var bmpData = new BitmapData(gridSize, gridSize);
 		for (x in 0...gridSize) { for (y in 0...gridSize) { bmpData.setPixel(x, y, 0xffffff); } }
 		fertilityPixels = bmpData.getPixels();
 		fs.fertility = fertility = Texture.fromPixels(fertilityPixels);
+		fertility.filter = Nearest;
+		fertility.mipMap = None;
+		fertility.wrap = Clamp;
 		fs.gridSize = gridSize;
 		matFloor.mainPass.addShader(fs);
 
@@ -150,46 +160,6 @@ class Floor {
 				}
 			}
 		}
-
-		//var colMountain = new Point(1.0, 1.0, 1.0);
-		//var colMiddle = new Point(0.1, 0.8, 0.0);
-		//var collValley = new Point(138 / 255.0, 51 / 255.0, 36 / 255.0);
-		//	// beaver: new Point(159 / 255.0, 129 / 255.0, 112 / 255.0); // https://en.wikipedia.org/wiki/Shades_of_brown
-		//for (p in pointsFloor) {
-		////	var f = perlin.gradient(10000, pf.x * 0.75, pf.y * 0.75);
-		////	f = (f * 0.5) + 0.5;
-		////	//trace(pf + " -> " + f);
-		////	colorsFloor.push(new Point(f, f, 0.5));
-		//	if (p.z > 0.0) {
-		//		var f = p.z / mountainMaxHeight;
-		//		colorsFloor.push(pointLerp(colMiddle.clone(), colMountain, f)); //new Point(f, 1.0, f));
-		//	}
-		//	else {
-		//		var f = -p.z / valleyMaxDepth;
-		//		colorsFloor.push(pointLerp(colMiddle.clone(), collValley, f)); // new Point(1.0, 1.0 - f, 1.0 - f));
-		//	}
-		//}
-		//
-		//for (p in pointsWalls) {
-		//	colorsWalls.push(new Point(1, 1, 1));
-		//	//if (p.z > 0.0) {
-		//	//	var f = p.z / mountainMaxHeight;
-		//	//	colorsWalls.push(new Point(f, 1.0, f));
-		//	//}
-		//	//else {
-		//	//	var f = -p.z / valleyMaxDepth;
-		//	//	colorsWalls.push(new Point(1.0, 1.0 - f, 1.0 - f));
-		//	//}
-		//}
-
-		//// HACK for a bug
-		//pointsFloor.push(new Point());
-		//uvsFloor.push(new UV(0, 0));
-		//colorsFloor.push(new Point());
-		//pointsWalls.push(new Point());
-		//uvsWalls.push(new UV(0, 0));
-		//colorsWalls.push(new Point());
-		//// HACK end
 
 		obj = new Object(parent);
 
@@ -354,16 +324,29 @@ class Floor {
 
 	// HELPERS
 
-	public static inline function pointLerp(a:Point, b:Point, f:Float):Point {
+	public static inline function pointLerp(a:Point, b:Point, f:Float) {
 		a.x = a.x * (1.0 - f) + b.x * f;
 		a.y = a.y * (1.0 - f) + b.y * f;
 		a.z = a.z * (1.0 - f) + b.z * f;
-		return a;
 	}
 
 	public static inline function pointLerp2(target:Point, a:Point, b:Point, f:Float) {
 		target.x = a.x * (1.0 - f) + b.x * f;
 		target.y = a.y * (1.0 - f) + b.y * f;
 		target.z = a.z * (1.0 - f) + b.z * f;
+	}
+
+	public static inline function vectorLerp(a:h3d.Vector, b:h3d.Vector, f:Float) {
+		a.x = a.x * (1.0 - f) + b.x * f;
+		a.y = a.y * (1.0 - f) + b.y * f;
+		a.z = a.z * (1.0 - f) + b.z * f;
+		a.w = a.w * (1.0 - f) + b.w * f;
+	}
+
+	public static inline function vectorLerp2(target:h3d.Vector, a:h3d.Vector, b:h3d.Vector, f:Float) {
+		target.x = a.x * (1.0 - f) + b.x * f;
+		target.y = a.y * (1.0 - f) + b.y * f;
+		target.z = a.z * (1.0 - f) + b.z * f;
+		target.w = a.w * (1.0 - f) + b.w * f;
 	}
 }
