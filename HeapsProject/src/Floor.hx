@@ -101,11 +101,12 @@ class Floor {
 		//var colorsWalls = new Array<Point>();
 		var idxBufferWalls = new IndexBuffer();
 
-		var offset = new Point();
+		obj = new Object(parent);
 
 		// create the grid and the tiles:
 
 		var g = gridSize - 1;
+		var offset = new Point();
 
 		for (y in 0...gridSize) {
 			for (x in 0...gridSize) {
@@ -139,7 +140,7 @@ class Floor {
 
 				//
 
-				tiles.push(new Tile(x, y, new Point(x, y, m), parent));
+				tiles.push(new Tile(x, y, new Point(x, y, m), obj));
 			}
 		}
 
@@ -160,8 +161,6 @@ class Floor {
 				}
 			}
 		}
-
-		obj = new Object(parent);
 
 		grid = new Polygon(pointsFloor, idxBufferFloor);
 		//grid.colors = colorsFloor;

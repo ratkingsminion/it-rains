@@ -35,11 +35,8 @@ class Main extends hxd.App {
 	public static var instance(default, null):Main;
 	public static var updates(default, null) = new Array<Float->Void>();
 	//
-#if debug
 	public var debugTxt(default, null):Text;
 	var layerDebug:h2d.Object;
-	var dbgGfx:Graphics;
-#end
 #if js
     var canvas:CanvasElement;
 #end
@@ -84,11 +81,7 @@ class Main extends hxd.App {
 		engine.autoResize = true;
 		hxd.Window.getInstance().addEventTarget(onEvent);
 
-		//Engine.ANTIALIASING = 4;
-
-		// floor
-		floor = new Floor(s3d, GRID_SIZE);
-		camPosition.x = camPosition.y = floor.gridSize * 0.5;
+		Engine.ANTIALIASING = 4;
 
 		// lights
 		dLightParent = new h3d.scene.Object(s3d);
@@ -96,27 +89,13 @@ class Main extends hxd.App {
 		var shadow = s3d.renderer.getPass(DirShadowMap);
 		shadow.blur.radius = 3;
 		shadow.power = 5.0;
-		//s3d.lightSystem.ambientLight.set(1, 1, 1, 1);
-		//
-		//camLight = new PointLight(s3d);
-		//camLight.color.setColor(0xffffff);
-		//camLight.z = 2.0;
-		//camLight.params.set(0, 0.25, 9.1);
-		//
-		//cursorLight = new PointLight();
-		//cursorLight.color.setColor(0xffffff);
-		//cursorLight.z = 2.0;
-		//cursorLight.params.set(0, 0.1, 1.5);
-//
-#if debug
+		
 		// debug information
 		layerDebug = new h2d.Object(s2d);
 		debugTxt = new Text(Layout.getFont(), layerDebug);
 		debugTxt.setPosition(25.0, 25.0);
 		debugTxt.setScale(0.5);
 
-		dbgGfx = new Graphics(s2d);
-#end
 		// compass
 		compass = new Compass(s3d);
 
@@ -129,7 +108,30 @@ class Main extends hxd.App {
 		hoverMat.receiveShadows = hoverMat.castShadows = false;
 		hoverObject = new h3d.scene.Mesh(hoverMesh, hoverMat, null);
 
-		// TEST
+		resetGame();
+
+		//
+
+		onResize();
+	}
+
+	function resetGame() {
+		curTime = 0.0;
+		tickTimer = 0.0;
+		windChangeTimer = 0.0;
+		paused = false;
+		camInputZoom = 0.0;
+		camRotation = new Vector(0.65, Math.PI * 0.2);
+		camPosition = new Vector(0.0, 0.0, 0.0);
+
+		if (floor != null) { floor.obj.remove(); floor = null; }
+		for (c in clouds) { c.destroy(); } clouds.splice(0, -1);
+
+		// floor
+		floor = new Floor(s3d, GRID_SIZE);
+		camPosition.x = camPosition.y = floor.gridSize * 0.5;
+
+		// trees
 		var treesCount = Math.min(TREES_START_COUNT, GRID_SIZE * GRID_SIZE);
 		while (treesCount > 0) {
 			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
@@ -139,10 +141,6 @@ class Main extends hxd.App {
 			}
 		}
 		changeWindDirRandomly();
-
-		//
-
-		onResize();
 	}
 
 	//
@@ -330,6 +328,8 @@ class Main extends hxd.App {
 			if (event.keyCode >= Key.F1 && event.keyCode <= Key.F12) { return; } // don't block F keys
 			if (event.keyCode >= Key.NUMBER_0 && event.keyCode <= Key.NUMBER_9) { return; } // don't block numbers
 			if (event.keyCode == Key.SPACE) { paused = !paused; }
+			if (event.keyCode == Key.R) { resetGame(); }
+			
 			switch (event.keyCode) {
 				case Key.W, Key.UP: camInputZoom = -1;
 				case Key.S, Key.DOWN: camInputZoom = 1;
