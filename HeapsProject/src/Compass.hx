@@ -18,7 +18,7 @@ class Compass {
 		var model = res.toModel();
 		obj = cache.loadModel(model);
 		parent.addChild(obj);
-		obj.scale(0.0004); // TODO
+		obj.scale(0.0003); // TODO
 
 		// materials
 		var mat = obj.getMaterials()[0];

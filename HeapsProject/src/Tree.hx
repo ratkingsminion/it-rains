@@ -121,17 +121,6 @@ class Tree {
 		}
 	}
 
-	public function info():String {
-		var str = "The tree on the soil is " + Helpers.floatToStringPrecision(age, 1) + " days old and has " + Helpers.floatToStringPrecision(growth * 100.0, 1) + "% growth.";
-		if (deathFactor > 0.0) {
-			str += "\nThe tree is at " + Std.int((1.0 - deathFactor) * 100.0) + "% health - it is " + Helpers.floatToStringPrecision(thirstFactor * 100.0, 1) + "% thirsty and " +  Helpers.floatToStringPrecision(drownFactor * 100.0, 1) + "% drowning.";
-		}
-		else {
-			str += "\nThe tree is 100% healthy.";
-		}
-		return str;
-	}
-
 	public function destroy() {
 		if (obj != null) {
 			obj.remove();

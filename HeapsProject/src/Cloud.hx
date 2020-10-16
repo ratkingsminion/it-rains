@@ -17,7 +17,7 @@ class Cloud {
 	//
 	var waitTicksBeforeMove = 2.0;
 	var amountOfRainPerTick = 1.0;
-	var z = 2;
+	var z:Float;
 	//
 	var floor:Floor;
 	var curWait = 0.0;
@@ -43,6 +43,7 @@ class Cloud {
 		obj.setPosition(x, y, z);
 		curPos.x = x;
 		curPos.y = y;
+		this.z = z + CLOUD_HEIGHT_OVER_START_TILE;
 
 		curWait = waitTicksBeforeMove;
 
@@ -61,6 +62,7 @@ class Cloud {
 	public function tick(windX:Int, windY:Int, dt:Float):Bool {
 		curWait -= dt;
 
+		var tile = floor.getTile(curPos.x, curPos.y);
 		if (curWait <= 0.0) {
 			curWait = waitTicksBeforeMove;
 			var nTile = floor.getTile(curPos.x + windX, curPos.y + windY);
@@ -77,15 +79,25 @@ class Cloud {
 							obj.y = hxd.Math.lerp(startY, nTile.y, f);
 						}
 					});
-				}
-				// get destroyed in water
-				if (nTile.pos.z + nTile.waterLevel > obj.z - 0.1) {
-					return false;
+					tile = nTile;
 				}
 			}
 			else {
+				var startX:Float = obj.x, startY:Float = obj.y;
+				var endX = startX + windX, endY = startY + windY;
+				Tweens.tween(0.0, 1.0, 0.2, f -> {
+					if (obj != null) {
+						obj.x = hxd.Math.lerp(startX, endX, f);
+						obj.y = hxd.Math.lerp(startY, endY, f);
+					}
+				});
 				return false;
 			}
+		}
+
+		// get destroyed in water
+		if (tile.pos.z + tile.waterLevel > z - 0.1) {
+			return false;
 		}
 
 		return floor.addWater(curPos.x, curPos.y, amountOfRainPerTick * dt);

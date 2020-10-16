@@ -74,7 +74,7 @@ class Floor {
 	//
 
 	public function new(parent:Object, gridSize:Int) {
-		var matFloor = Material.create(Layout.getTexture("floor3"));
+		var matFloor = Material.create(Layout.getTexture("floor5"));
 		fs = new FloorShader();
 		var bmpData = new BitmapData(gridSize, gridSize);
 		for (x in 0...gridSize) { for (y in 0...gridSize) { bmpData.setPixel(x, y, 0xffffff); } }
@@ -86,7 +86,7 @@ class Floor {
 		fs.gridSize = gridSize;
 		matFloor.mainPass.addShader(fs);
 
-		var matWalls = Material.create(Layout.getTexture("floor4"));
+		var matWalls = Material.create(Layout.getTexture("wall1"));
 
 		perlinSeed = Std.int(hxd.Math.srand(100000.0));
 		perlin.normalize = true;
@@ -112,7 +112,7 @@ class Floor {
 			for (x in 0...gridSize) {
 				offset.set(x - 0.5, y - 0.5, 0.0);
 				var m  = getHeight(x + 0, y + 0);
-				addQuad4(pointsFloor, uvsFloor, offset, 0.0, 0.0, 1.0, 1.0, idxBufferFloor, m, m, m, m); // middle quad
+				addQuad4(pointsFloor, uvsFloor, offset, 0.0, 0.0, 1.0, 1.0, idxBufferFloor, m, m, m, m, true); // middle quad
 
 				//
 
@@ -185,17 +185,28 @@ class Floor {
 		return a.add(new Point(x, y, z));
 	}
 
-	function addQuad4(points:Array<Point>, uvs:Array<UV>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0:Float = 0.0, z1:Float = 0.0, z2:Float = 0.0, z3:Float = 0.0) {
+	function addQuad4(points:Array<Point>, uvs:Array<UV>, offset:Point, x:Float, y:Float, w:Float, h:Float, idxBuffer:IndexBuffer, z0 = 0.0, z1 = 0.0, z2 = 0.0, z3 = 0.0, randomUVs = false) {
 		var idx = points.length;
 		points.push(add(offset, x + 0.0 * w, y + 1.0 * h, z0));
 		points.push(add(offset, x + 0.0 * w, y + 0.0 * h, z1));
 		points.push(add(offset, x + 1.0 * w, y + 0.0 * h, z2));
 		points.push(add(offset, x + 1.0 * w, y + 1.0 * h, z3));
 		if (uvs != null) {
-			uvs.push(new UV(0.0, 1.0));
-			uvs.push(new UV(0.0, 0.0));
-			uvs.push(new UV(1.0, 0.0));
-			uvs.push(new UV(1.0, 1.0));
+			if (randomUVs) {
+				var size = 0.5; // TODO define elsewhere?
+				var x0 = Std.int(Math.random() / size) * size;
+				var y0 = Std.int(Math.random() / size) * size;
+				var x1 = x0 + size, y1 = y0 + size;
+				switch (Helpers.randomInt(4)) {
+					case 0: uvs.push(new UV(x0, y1)); uvs.push(new UV(x0, y0)); uvs.push(new UV(x1, y0)); uvs.push(new UV(x1, y1));
+					case 1: uvs.push(new UV(x0, y0)); uvs.push(new UV(x1, y0)); uvs.push(new UV(x1, y1)); uvs.push(new UV(x0, y1));
+					case 2: uvs.push(new UV(x1, y0)); uvs.push(new UV(x1, y1)); uvs.push(new UV(x0, y1)); uvs.push(new UV(x0, y0));
+					case 3: uvs.push(new UV(x1, y1)); uvs.push(new UV(x0, y1)); uvs.push(new UV(x0, y0)); uvs.push(new UV(x1, y0));
+				}
+			}
+			else {
+				uvs.push(new UV(0.0, 1.0)); uvs.push(new UV(0.0, 0.0)); uvs.push(new UV(1.0, 0.0)); uvs.push(new UV(1.0, 1.0));
+			}
 		}
 		idxBuffer.push(idx + 0); idxBuffer.push(idx + 1); idxBuffer.push(idx + 2);
 		idxBuffer.push(idx + 2); idxBuffer.push(idx + 3); idxBuffer.push(idx + 0);

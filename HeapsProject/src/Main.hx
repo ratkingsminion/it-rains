@@ -1,55 +1,54 @@
 package;
 
+import h3d.prim.Grid;
 import h2d.Graphics;
 import h2d.Object;
 import h3d.pass.DirShadowMap;
 import h3d.scene.fwd.DirLight;
-import hxd.fs.Convert.Command;
-import h3d.shader.ColorAdd;
 import h3d.mat.Material;
 import h3d.prim.Cube;
-import h3d.col.Plane;
 import h2d.Text;
 import h3d.Engine;
-import h3d.scene.fwd.PointLight;
 import h3d.Vector;
 import hxd.Event.EventKind;
 import hxd.Key;
-import hxd.Timer;
 #if js
 import js.html.CanvasElement;
 import js.Browser;
 #end
 
 class Main extends hxd.App {
-	public static final VERSION = "v0.0.2";
+	public static final VERSION = "v0.1";
 	public static final TICK_TIME = 0.1; // one second per tick
 	public static final TICK_SCALE = 1.0; // TODO
 	public static final GRID_SIZE = 10;
-	public static final TREES_START_COUNT = 10;
+	public static final TREES_START_COUNT = 7;
 	public static final WIND_CHANGE_AFTER_TICKS = 7.5;
 	public static final EVAPORATE_WATER_PER_TILE_AND_TICK = 0.01; // one second per tick
 
 	//
 
 	public static var instance(default, null):Main;
-	public static var updates(default, null) = new Array<Float->Void>();
-	//
-	public var debugTxt(default, null):Text;
-	var layerDebug:h2d.Object;
+	public var isOnMobileOrTablet(default, null) = false;
+	// USER INTERFACE 2D
+	var layerUI:h2d.Object;
+#if debug
+	var debugTxt(default, null):Text;
+#end
+	var uiDays:Text;
+	var uiHoverInfo:Text;
+	var uiBtnPause:Button;
+	var uiBtnReset:Button;
+	var uiBtnHelp:Button;
 #if js
     var canvas:CanvasElement;
 #end
-	var floor:Floor;
-	var clouds = new Array<Cloud>();
-	// HUD
+	// INTERFACE INGAME
 	var hoveredTile:Tile = null;
 	var hoverObject:h3d.scene.Object;
 	var compass:Compass;
-	// camera
-	//var camLight:PointLight;
+	// CAMERA
 	var dLightParent:h3d.scene.Object;
-	//var cursorLight:PointLight;
 	var camInputRotate = new Vector();
 	var camInputRotateLastMousePos:Vector = null;
 	var camInputMove = new Vector();
@@ -58,20 +57,32 @@ class Main extends hxd.App {
 	var camRotation = new Vector(0.65, Math.PI * 0.2);
 	var camPosition = new Vector(0.0, 0.0, 0.0);
 	var camZoom = 25.0;
-	// time
+	// GAME
+	var floor:Floor;
+	var clouds = new Array<Cloud>();
+	// TIME
 	var curTime = 0.0;
 	var tickTimer = 0.0;
 	var curWindDir = { x:0, y:-1 };
 	var windChangeTimer = 0.0;
 	var paused = false;
+	var dialog:Dialog = null;
 
 	//
 
 	override function init() {
 		super.init();
 
-#if js
-  	 	canvas = cast Browser.document.getElementById("webgl");
+		Lang.lang = German;
+
+#if (js || html5)
+		isOnMobileOrTablet = untyped __js__("mobileAndTabletCheck()"); // source: https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
+        canvas = cast Browser.document.getElementById("webgl");
+        //Browser.document.onkeydown = e -> {
+		//	if (e.keyCode >= Key.F1 && e.keyCode <= Key.F12) { return; } // don't block F keys
+		//	if (e.keyCode >= Key.NUMBER_0 && e.keyCode <= Key.NUMBER_9) { return; } // don't block numbers
+		//	e.preventDefault(); // everything else: yes
+		//}
         Browser.document.ondrag = e -> { e.preventDefault(); }
 		hxd.Window.getInstance().propagateKeyEvents = true;
 #end
@@ -91,13 +102,52 @@ class Main extends hxd.App {
 		shadow.power = 5.0;
 		
 		// debug information
-		layerDebug = new h2d.Object(s2d);
-		debugTxt = new Text(Layout.getFont(), layerDebug);
-		debugTxt.setPosition(25.0, 25.0);
+		layerUI = new h2d.Object(s2d);
+		debugTxt = new Text(Layout.getFont(), layerUI);
+		debugTxt.setPosition(25.0, 100.0);
 		debugTxt.setScale(0.5);
+		layerUI.visible = false;
+
+		// USER INTERFACE
+		uiDays = new Text(Layout.getFont(), layerUI);
+		uiDays.setScale(0.8);
+		uiDays.textAlign = Left;
+		uiDays.x = uiDays.y = 25.0;
+
+		uiHoverInfo = new Text(Layout.getFont(), layerUI);
+		uiHoverInfo.setScale(0.6);
+		uiHoverInfo.textAlign = Right;
+
+		uiBtnPause = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
+			paused = !paused;
+			uiBtnPause.setLabelText(paused ? ">" : "||");
+		}, false).setLabel("||", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
+
+		uiBtnHelp = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
+			var oldPaused = paused;
+			paused = true;
+			dialog = new Dialog(Lang.help(), s2d, 500, 400,
+				() -> { paused = oldPaused; dialog = null; } );
+		}, false).setLabel("?");
+
+		uiBtnReset = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
+			if (curTime < 5.0) {
+				resetGame();
+			}
+			else {
+				var oldPaused = paused;
+				paused = true;
+				dialog = new Dialog(Lang.confirmReset(), s2d, 300, 200,
+					() -> { resetGame(); paused = oldPaused; dialog = null; },
+					() -> { paused = oldPaused; dialog = null; } );
+			}
+		}, false).setLabel("R");
+
+		// TODO show how many clouds i have left
 
 		// compass
 		compass = new Compass(s3d);
+		compass.obj.visible = false;
 
 		// hover
 		var hoverMesh = new Cube(1.1, 1.1, 0.5, true);
@@ -113,6 +163,17 @@ class Main extends hxd.App {
 		//
 
 		onResize();
+		
+		//
+		
+		paused = true;
+		dialog = new Dialog(Lang.start(), s2d, 500, 300, () -> {
+			paused = false; 
+			dialog = null;
+
+			layerUI.visible = true;
+			compass.obj.visible = true;
+		});
 	}
 
 	function resetGame() {
@@ -136,7 +197,7 @@ class Main extends hxd.App {
 		while (treesCount > 0) {
 			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
 			if (floor.tiles[r].addTree()) {
-				floor.tiles[r].addWater(0.2);
+				floor.tiles[r].addWater(0.25);
 				treesCount--;
 			}
 		}
@@ -195,6 +256,20 @@ class Main extends hxd.App {
 			}
 		}
 
+		var treeCount = 0;
+		for (t in floor.tiles) { if (t.tree != null) { treeCount++; }}
+		uiDays.text = Lang.days(Std.int(curTime), treeCount / (GRID_SIZE * GRID_SIZE));
+		if (!paused && treeCount == 0) {
+			paused = true;
+			layerUI.visible = false;
+			dialog = new Dialog("DUN DUN DUN", s2d, 300, 300, () -> {
+				dialog = null;
+				layerUI.visible = true;
+				resetGame();
+			});
+			return;
+		}
+
 		//var size = 10;
 		//var pixels = floor.fs.fertility.capturePixels();
 		//for (t in floor.tiles) {
@@ -203,15 +278,19 @@ class Main extends hxd.App {
 		//}
 
 #if debug
-		var dbgStr = "";
-		dbgStr += Helpers.floatToStringPrecision(engine.fps, 2) + " fps";
-		dbgStr += "\n\n" + Std.int(curTime) + " days";
 		//+ | TD" + Main.VERSION + " | " + s2d.width + "x" + s2d.height + " | " + engine.drawCalls + " | "
 		//+ " Scale:" + Helpers.floatToStringPrecision(Layout.SCALE, 2) + " | " + Timer.frameCount + " | ";
 		//+ "\nPress C to switch between ortho and perspective cam";
-		if (hoveredTile != null) { dbgStr += "\n\n" + hoveredTile.info(); }
-		debugTxt.text = dbgStr;
+		debugTxt.text = Helpers.floatToStringPrecision(engine.fps, 2) + " fps";
 #end
+
+		if (hoveredTile != null && dialog == null) {
+			uiHoverInfo.text = hoveredTile.info();
+			uiHoverInfo.y = s2d.height / Layout.SCALE - 25.0 - uiHoverInfo.textHeight * uiHoverInfo.scaleY;
+		}
+		else {
+			uiHoverInfo.text = "";
+		}
 
 		//if (Key.isPressed(Key.C)) {
 		//	var aspect = s2d.width / s2d.height;
@@ -219,13 +298,13 @@ class Main extends hxd.App {
 		//}
 
 		var ray = s3d.camera.rayFromScreen(s2d.mouseX * Layout.SCALE, s2d.mouseY * Layout.SCALE);
-		hoveredTile = floor.rayTile(ray);
+		hoveredTile = camInputRotateLastMousePos == null && camInputMoveLastMousePos == null ? floor.rayTile(ray) : null;
 		var p = ray.intersect(floor.plane);
 		//if (p != null) { cursorLight.x = p.x; cursorLight.y = p.y; }
 
-		if (hoveredTile != null) {
-			if (Key.isDown(Key.T)) { floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5); }
-			if (Key.isDown(Key.G)) { floor.removeWater(hoveredTile.x, hoveredTile.y, dt * 5); }
+		if (hoveredTile != null && dialog == null) {
+			//if (Key.isDown(Key.T)) { floor.addWater(hoveredTile.x, hoveredTile.y, dt * 5); }
+			//if (Key.isDown(Key.G)) { floor.removeWater(hoveredTile.x, hoveredTile.y, dt * 5); }
 			if (hoverObject.parent == null) { s3d.addChild(hoverObject); }
 			hoverObject.setPosition(hoveredTile.x, hoveredTile.y, hoveredTile.pos.z - 0.24);
 		}
@@ -260,16 +339,14 @@ class Main extends hxd.App {
 
 		dLightParent.setRotation(0, 0, -camRotation.y);
 
-		// other)
-
-		for (update in updates) {
-			update(dt);
-		}
+		// other
 
 		compass.update(s3d.camera, dt);
 
 		// tweens
-		Tweens.update(dt);
+		if (!paused) {
+			Tweens.update(dt);
+		}
 	}
 
 	//
@@ -287,7 +364,7 @@ class Main extends hxd.App {
 
 	function onEvent(event:hxd.Event):Void {
 		if (event.button == 0) {
-			if (event.kind == EventKind.EPush) {
+			if (event.kind == EventKind.EPush && dialog == null) {
 				var ray = s3d.camera.rayFromScreen(event.relX, event.relY);
 				var tile = floor.rayTile(ray);
 				if (tile != null) {
@@ -296,18 +373,18 @@ class Main extends hxd.App {
 				}
 			}
 		}
-		else if (event.button == 1) {
+		else if (event.button == 1 && dialog == null) {
 			// camera rotation
 			if (event.kind == EventKind.EPush) { camInputRotateLastMousePos = new Vector(event.relX, event.relY); }
 			else if (event.kind == EventKind.ERelease) { camInputRotateLastMousePos = null; }
 		}
-		else if (event.button == 2) {
+		else if (event.button == 2 && dialog == null) {
 			// camera movement
 			if (event.kind == EventKind.EPush) { camInputMoveLastMousePos = new Vector(event.relX, event.relY); }
 			else if (event.kind == EventKind.ERelease) { camInputMoveLastMousePos = null; }
 		}
 
-		if (event.kind == EventKind.EWheel) {
+		if (event.kind == EventKind.EWheel && dialog == null) {
 			// camera zoom
 			camInputZoom = event.wheelDelta * 35.0;
 		}
@@ -327,17 +404,17 @@ class Main extends hxd.App {
 		if (event.kind == EventKind.EKeyDown) {
 			if (event.keyCode >= Key.F1 && event.keyCode <= Key.F12) { return; } // don't block F keys
 			if (event.keyCode >= Key.NUMBER_0 && event.keyCode <= Key.NUMBER_9) { return; } // don't block numbers
-			if (event.keyCode == Key.SPACE) { paused = !paused; }
-			if (event.keyCode == Key.R) { resetGame(); }
+			if (event.keyCode == Key.SPACE) { uiBtnPause.click(); }
+			if (event.keyCode == Key.R && dialog == null) { uiBtnReset.click(); }
 			
-			switch (event.keyCode) {
-				case Key.W, Key.UP: camInputZoom = -1;
-				case Key.S, Key.DOWN: camInputZoom = 1;
-				case Key.A, Key.LEFT: camInputRotate.y = -2; // yaw
-				case Key.D, Key.RIGHT: camInputRotate.y = 2;
-				case Key.Q: camInputRotate.x = -3; // pitch
-				case Key.E: camInputRotate.x = 3;
-			}
+			//switch (event.keyCode) {
+			//	case Key.W, Key.UP: camInputZoom = -1;
+			//	case Key.S, Key.DOWN: camInputZoom = 1;
+			//	case Key.A, Key.LEFT: camInputRotate.y = -2; // yaw
+			//	case Key.D, Key.RIGHT: camInputRotate.y = 2;
+			//	case Key.Q: camInputRotate.x = -3; // pitch
+			//	case Key.E: camInputRotate.x = 3;
+			//}
 		}
 	}
 
@@ -347,6 +424,14 @@ class Main extends hxd.App {
 		Layout.SCALE = 1.0 * factor;
 		if (s2d.width / factor < Layout.RESOLUTION.x) { Layout.SCALE *= (s2d.width / factor) / Layout.RESOLUTION.x; }
 		s2d.setScale(Layout.SCALE);
+
+		// UI
+		var sw = s2d.width / Layout.SCALE;
+		var sh = s2d.height / Layout.SCALE; // Layout.RESOLUTION.y / Layout.SCALE;
+		uiHoverInfo.x = sw - 25.0;
+		uiBtnPause.obj.x = sw - 30 - 25.0;
+		uiBtnHelp.obj.x = uiBtnPause.obj.x - 60 - 15.0;
+		uiBtnReset.obj.x = uiBtnHelp.obj.x - 60 - 15.0;
     }
 
 	// 

@@ -1,13 +1,11 @@
 package;
 
 import haxe.ds.IntMap;
-import h3d.prim.UV;
 import h3d.prim.Quads;
 import h3d.col.Point;
 import h3d.Vector;
 import h3d.scene.Mesh;
 import h3d.mat.Material;
-import h3d.prim.Cube;
 import h3d.scene.Object;
 
 class Tile {
@@ -48,12 +46,12 @@ class Tile {
 	}
 
 	public function info():String {
-		var str = "Tile (" + x + "/" + y + ") with " + Helpers.floatToStringPrecision((curWater / maxWater) * 100.0, 1) + "% water.";
-		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeAndAbove() * 100, 1) + " litres water above the tile, and " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
-		str += "\nThere is " + Helpers.floatToStringPrecision(waterLevel * 100, 1) + " litres water above the tile.";
-		//str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
-		if (tree != null) { return str += "\n\n" + tree.info(); }
-		return str;
+		//var str = "Tile (" + x + "/" + y + ") with " + Helpers.floatToStringPrecision((curWater / maxWater) * 100.0, 1) + "% water.";
+		////str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeAndAbove() * 100, 1) + " litres water above the tile, and " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
+		//str += "\nThere is " + Helpers.floatToStringPrecision(waterLevel * 100, 1) + " litres water above the tile.";
+		////str += "\nThere is " + Helpers.floatToStringPrecision(wv.getVolumeOfCompleteWaterBody() * 100, 1) + " litres overall in the water body.";
+		//if (tree != null) { return str += "\n\n" + tree.info(); }
+		return Lang.tileInfo(this);
 	}
 
 	//
