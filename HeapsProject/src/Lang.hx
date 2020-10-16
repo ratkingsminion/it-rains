@@ -12,6 +12,13 @@ class Lang {
 		}
 	}
 
+	public inline static function lose():String {
+		return switch(lang) {
+			default:		"There is no more tree in your world.\n\nTry again!";
+			case German:	"Es gibt keine Bäume mehr in deiner Welt.\n\nVersuch's noch einmal!";
+		}
+	}
+
 	public inline static function help():String {
 		return switch(lang) {
 			default: 		"Try to keep your forest alive as long as possible in this sandbox simulation game. From time to time the wind direction changes.\n\nTo add a cloud for rain, hover a tile and press LMB. Rotate the camera by keeping RMB pressed, and move it with MMB. The scroll wheel zooms in and out. To (un)pause the game, use the button in the top right corner.";
@@ -58,22 +65,22 @@ class Lang {
 		var str = "";
 		switch(lang) {
 			default:
-				str += "Water: " + Helpers.floatToStringPrecision((tile.curWater / tile.maxWater) * 100.0, 1) + "%";
-				if (tile.waterLevel > 0.0) { str += " + " + Helpers.floatToStringPrecision(tile.waterLevel * 100, 1) + " litre(s) above"; }
 				if (tile.tree != null) {
-					str += "\nTree Age: " + Std.int(tile.tree.age) + " day(s)";
-					str += "\nTree Growth: " + Helpers.floatToStringPrecision(tile.tree.growth * 100.0, 1) + "%";
-					str += "\nTree Health: " + Std.int((1.0 - tile.tree.deathFactor) * 100.0) + "%";
+					str += "\nTree age: " + Std.int(tile.tree.age) + " day(s)";
+					str += "\nTree growth: " + Helpers.floatToStringPrecision(tile.tree.growth * 100.0, 1) + "%";
+					str += "\nTree health: " + Std.int((1.0 - tile.tree.deathFactor) * 100.0) + "%";
 					if (tile.tree.thirstFactor > 0.0) {
 						str += " (Thirst: " + Helpers.floatToStringPrecision(tile.tree.thirstFactor * 100.0, 1) + "%)";
 					}
 					if (tile.tree.drownFactor > 0.0) {
 						str += " (Drowning: " + Helpers.floatToStringPrecision(tile.tree.drownFactor * 100.0, 1) + "%)";
 					}
+					str += "\n";
 				}
+				str += "Soil humidity: " + Helpers.floatToStringPrecision((tile.curWater / tile.maxWater) * 100.0, 1) + "%";
+				if (tile.waterLevel > 0.0) { str += " + " + Helpers.floatToStringPrecision(tile.waterLevel * 100, 1) + " litre(s) water"; }
+			
 			case German:
-				str += "Wasser: " + Helpers.floatToStringPrecision((tile.curWater / tile.maxWater) * 100.0, 1) + "%";
-				if (tile.waterLevel > 0.0) { str += " + " + Helpers.floatToStringPrecision(tile.waterLevel * 100, 1) + " Liter darüber"; }
 				if (tile.tree != null) {
 					str += "\nBaumalter: " + Std.int(tile.tree.age) + " Tag(e)";
 					str += "\nBaumwachstum: " + Helpers.floatToStringPrecision(tile.tree.growth * 100.0, 1) + "%";
@@ -84,7 +91,10 @@ class Lang {
 					if (tile.tree.drownFactor > 0.0) {
 						str += " (Ertrinken: " + Helpers.floatToStringPrecision(tile.tree.drownFactor * 100.0, 1) + "%)";
 					}
+					str += "\n";
 				}
+				str += "Bodenfeuchtigkeit: " + Helpers.floatToStringPrecision((tile.curWater / tile.maxWater) * 100.0, 1) + "%";
+				if (tile.waterLevel > 0.0) { str += " + " + Helpers.floatToStringPrecision(tile.waterLevel * 100, 1) + " Liter Wasser"; }
 		}
 		return str;
 	}

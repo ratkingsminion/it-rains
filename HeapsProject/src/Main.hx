@@ -1,7 +1,5 @@
 package;
 
-import h3d.prim.Grid;
-import h2d.Graphics;
 import h2d.Object;
 import h3d.pass.DirShadowMap;
 import h3d.scene.fwd.DirLight;
@@ -116,7 +114,8 @@ class Main extends hxd.App {
 
 		uiHoverInfo = new Text(Layout.getFont(), layerUI);
 		uiHoverInfo.setScale(0.6);
-		uiHoverInfo.textAlign = Right;
+		uiHoverInfo.textAlign = Left;
+		uiHoverInfo.x = 25.0;
 
 		uiBtnPause = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			paused = !paused;
@@ -144,6 +143,9 @@ class Main extends hxd.App {
 		}, false).setLabel("R");
 
 		// TODO show how many clouds i have left
+		// TODO Button-Grafik Hintergrund
+		// TODO Button-Grafik Play/Pause
+		// TODO Kompass-Kreis
 
 		// compass
 		compass = new Compass(s3d);
@@ -194,11 +196,23 @@ class Main extends hxd.App {
 
 		// trees
 		var treesCount = Math.min(TREES_START_COUNT, GRID_SIZE * GRID_SIZE);
-		while (treesCount > 0) {
-			var r = Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
-			if (floor.tiles[r].addTree()) {
-				floor.tiles[r].addWater(0.25);
-				treesCount--;
+		var treesStart:Array<Int> = [ ];
+		while (treesStart.length < treesCount) {
+			var r = treesStart.length > 0 ? Helpers.randomInt(treesStart.length) : -1; // Std.int(hxd.Math.random(floor.gridSize*floor.gridSize));
+			var i = r >= 0 ? treesStart[r] : Helpers.randomInt(GRID_SIZE * GRID_SIZE);
+			var x = i % GRID_SIZE;
+			var y = Std.int(i / GRID_SIZE);
+			trace(r + " " + i + " ... " + x + "/" + y);
+			switch (Helpers.randomInt(4)) {
+				case 0: x--; if (x < 0) { continue; }
+				case 1: x++; if (x >= GRID_SIZE) { continue; }
+				case 2: y--; if (y < 0) { continue; }
+				case 3: y++; if (y >= GRID_SIZE) { continue; }
+			}
+			i = y * GRID_SIZE + x;
+			if (floor.tiles[i].addTree()) {
+				floor.tiles[i].addWater(0.25);
+				treesStart.push(i);
 			}
 		}
 		changeWindDirRandomly();
@@ -262,7 +276,7 @@ class Main extends hxd.App {
 		if (!paused && treeCount == 0) {
 			paused = true;
 			layerUI.visible = false;
-			dialog = new Dialog("DUN DUN DUN", s2d, 300, 300, () -> {
+			dialog = new Dialog(Lang.lose(), s2d, 300, 300, () -> {
 				dialog = null;
 				layerUI.visible = true;
 				resetGame();
@@ -427,8 +441,7 @@ class Main extends hxd.App {
 
 		// UI
 		var sw = s2d.width / Layout.SCALE;
-		var sh = s2d.height / Layout.SCALE; // Layout.RESOLUTION.y / Layout.SCALE;
-		uiHoverInfo.x = sw - 25.0;
+		//var sh = s2d.height / Layout.SCALE;
 		uiBtnPause.obj.x = sw - 30 - 25.0;
 		uiBtnHelp.obj.x = uiBtnPause.obj.x - 60 - 15.0;
 		uiBtnReset.obj.x = uiBtnHelp.obj.x - 60 - 15.0;

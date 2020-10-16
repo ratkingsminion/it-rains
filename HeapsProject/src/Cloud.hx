@@ -40,7 +40,7 @@ class Cloud {
 		}
 
 		obj = new Mesh(mesh, material, parent);
-		obj.setPosition(x, y, z);
+		obj.setPosition(x, y, z + CLOUD_HEIGHT_OVER_START_TILE);
 		curPos.x = x;
 		curPos.y = y;
 		this.z = z + CLOUD_HEIGHT_OVER_START_TILE;
