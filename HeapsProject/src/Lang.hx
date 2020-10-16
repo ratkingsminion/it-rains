@@ -54,10 +54,10 @@ class Lang {
 		}
 	}
 
-	public inline static function days(d:Int, t:Float):String {
+	public inline static function days(d:Int, t:Float, cc:Int, ct:Int):String {
 		return switch(lang) {
-			default: 		"Days: " + d + "\nTree Population: " + Std.int(t * 100.0) + "%";
-			case German:	"Tage: " + d + "\nBaumpopulation: " + Std.int(t * 100.0) + "%";
+			default: 		"Days: " + d + "\nTree Population: " + Std.int(t * 100.0) + "%\nClouds: " + cc + " / " + ct;
+			case German:	"Tage: " + d + "\nBaumpopulation: " + Std.int(t * 100.0) + "%\nWolken: " + cc + " / " + ct;
 		}
 	}
 

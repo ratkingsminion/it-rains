@@ -13,6 +13,10 @@ class Rain {
 	var group:GpuPartGroup;
 
 	//
+
+	public function togglePause(p:Bool) {
+		group.enable = !p;
+	}
 	
 	public function new(parent:Object) {
 		parts = new GpuParticles(parent);

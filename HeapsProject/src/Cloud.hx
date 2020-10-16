@@ -25,6 +25,10 @@ class Cloud {
 
 	//
 
+	public function togglePause(p:Bool) {
+		rain.togglePause(p);
+	}
+
 	public function new(parent:Object, floor:Floor, x:Int, y:Int, z:Float) {
 		this.floor = floor;
 		

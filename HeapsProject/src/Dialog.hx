@@ -10,17 +10,20 @@ class Dialog {
 	var obj:Object;
 
 	//
-	
-	public function new(text:String, scene:Scene, w:Float, h:Float, firstBtn:Void->Void, secondBtn:Void->Void = null, backColor:Int = 0x000000, backAlpha:Float = 0.8) {
+
+	public function onResize(scene:Scene) {
 		var x = scene.width * 0.5 / Layout.SCALE;
 		var y = scene.height * 0.5 / Layout.SCALE;
-
+		obj.setPosition(x, y);
+	}
+	
+	public function new(text:String, scene:Scene, w:Float, h:Float, firstBtn:Void->Void, secondBtn:Void->Void = null, backColor:Int = 0x000000, backAlpha:Float = 0.8) {
 		var interact = new Interactive(5000.0, 5000.0, scene);
 		interact.cursor = Default;
 		
 		obj = new Object(scene);
-		obj.setPosition(x, y);
-
+		onResize(scene);
+		
 		var back = new Graphics(obj);
 		back.beginFill(backColor, backAlpha);
 		back.drawRect(0, 0, w, h);

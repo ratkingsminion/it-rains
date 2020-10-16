@@ -35,6 +35,7 @@ class Main extends hxd.App {
 #end
 	var uiDays:Text;
 	var uiHoverInfo:Text;
+	var uiBtnLanguage:Button;
 	var uiBtnPause:Button;
 	var uiBtnReset:Button;
 	var uiBtnHelp:Button;
@@ -58,6 +59,7 @@ class Main extends hxd.App {
 	// GAME
 	var floor:Floor;
 	var clouds = new Array<Cloud>();
+	var cloudsCreated = 0;
 	// TIME
 	var curTime = 0.0;
 	var tickTimer = 0.0;
@@ -70,8 +72,6 @@ class Main extends hxd.App {
 
 	override function init() {
 		super.init();
-
-		Lang.lang = German;
 
 #if (js || html5)
 		isOnMobileOrTablet = untyped __js__("mobileAndTabletCheck()"); // source: https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
@@ -102,7 +102,7 @@ class Main extends hxd.App {
 		// debug information
 		layerUI = new h2d.Object(s2d);
 		debugTxt = new Text(Layout.getFont(), layerUI);
-		debugTxt.setPosition(25.0, 100.0);
+		debugTxt.setPosition(25.0, 150.0);
 		debugTxt.setScale(0.5);
 		layerUI.visible = false;
 
@@ -117,17 +117,25 @@ class Main extends hxd.App {
 		uiHoverInfo.textAlign = Left;
 		uiHoverInfo.x = 25.0;
 
+		uiBtnLanguage = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
+			Lang.lang = Lang.lang == English ? German : English;
+			uiBtnLanguage.setLabelText(switch (Lang.lang) {
+				default: "en";
+				case German: "de";
+			});
+		}, false).setLabel("", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.6);
+		uiBtnLanguage.click();
+
 		uiBtnPause = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
-			paused = !paused;
-			uiBtnPause.setLabelText(paused ? ">" : "||");
-		}, false).setLabel("||", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
+			togglePause(!paused);
+		}, false).setLabel("P", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
 
 		uiBtnHelp = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			var oldPaused = paused;
-			paused = true;
+			togglePause(false);
 			dialog = new Dialog(Lang.help(), s2d, 500, 400,
-				() -> { paused = oldPaused; dialog = null; } );
-		}, false).setLabel("?");
+				() -> { togglePause(oldPaused); dialog = null; } );
+		}, false).setLabel("?", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
 
 		uiBtnReset = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			if (curTime < 5.0) {
@@ -135,14 +143,13 @@ class Main extends hxd.App {
 			}
 			else {
 				var oldPaused = paused;
-				paused = true;
+				togglePause(true);
 				dialog = new Dialog(Lang.confirmReset(), s2d, 300, 200,
-					() -> { resetGame(); paused = oldPaused; dialog = null; },
-					() -> { paused = oldPaused; dialog = null; } );
+					() -> { resetGame(); togglePause(oldPaused); dialog = null; },
+					() -> { togglePause(oldPaused); dialog = null; } );
 			}
-		}, false).setLabel("R");
+		}, false).setLabel("R", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
 
-		// TODO show how many clouds i have left
 		// TODO Button-Grafik Hintergrund
 		// TODO Button-Grafik Play/Pause
 		// TODO Kompass-Kreis
@@ -168,21 +175,28 @@ class Main extends hxd.App {
 		
 		//
 		
-		paused = true;
+		togglePause(true);
 		dialog = new Dialog(Lang.start(), s2d, 500, 300, () -> {
-			paused = false; 
+			togglePause(false);
 			dialog = null;
 
 			layerUI.visible = true;
 			compass.obj.visible = true;
 		});
 	}
+	
+	public function togglePause(p:Bool) {
+		paused = p;
+		for (c in clouds) { c.togglePause(p); }
+		uiBtnPause.setLabelText(paused ? "P" : "P");
+	}
 
 	function resetGame() {
 		curTime = 0.0;
+		cloudsCreated = 0;
 		tickTimer = 0.0;
 		windChangeTimer = 0.0;
-		paused = false;
+		togglePause(false);
 		camInputZoom = 0.0;
 		camRotation = new Vector(0.65, Math.PI * 0.2);
 		camPosition = new Vector(0.0, 0.0, 0.0);
@@ -202,7 +216,7 @@ class Main extends hxd.App {
 			var i = r >= 0 ? treesStart[r] : Helpers.randomInt(GRID_SIZE * GRID_SIZE);
 			var x = i % GRID_SIZE;
 			var y = Std.int(i / GRID_SIZE);
-			trace(r + " " + i + " ... " + x + "/" + y);
+			//trace(r + " " + i + " ... " + x + "/" + y);
 			switch (Helpers.randomInt(4)) {
 				case 0: x--; if (x < 0) { continue; }
 				case 1: x++; if (x >= GRID_SIZE) { continue; }
@@ -272,9 +286,9 @@ class Main extends hxd.App {
 
 		var treeCount = 0;
 		for (t in floor.tiles) { if (t.tree != null) { treeCount++; }}
-		uiDays.text = Lang.days(Std.int(curTime), treeCount / (GRID_SIZE * GRID_SIZE));
+		uiDays.text = Lang.days(Std.int(curTime), treeCount / (GRID_SIZE * GRID_SIZE), clouds.length, cloudsCreated);
 		if (!paused && treeCount == 0) {
-			paused = true;
+			togglePause(true);
 			layerUI.visible = false;
 			dialog = new Dialog(Lang.lose(), s2d, 300, 300, () -> {
 				dialog = null;
@@ -371,6 +385,7 @@ class Main extends hxd.App {
 		if (tile == null) { return null; }
 		var cloud = new Cloud(s3d, floor, x, y, tile.pos.z + tile.waterLevel);
 		clouds.push(cloud);
+		cloudsCreated++;
 		return cloud;
 	}
 
@@ -444,7 +459,8 @@ class Main extends hxd.App {
 		//var sh = s2d.height / Layout.SCALE;
 		uiBtnPause.obj.x = sw - 30 - 25.0;
 		uiBtnHelp.obj.x = uiBtnPause.obj.x - 60 - 15.0;
-		uiBtnReset.obj.x = uiBtnHelp.obj.x - 60 - 15.0;
+		uiBtnLanguage.obj.x = uiBtnHelp.obj.x - 60 - 15.0;
+		uiBtnReset.obj.x = uiBtnLanguage.obj.x - 60 - 15.0;
     }
 
 	// 
