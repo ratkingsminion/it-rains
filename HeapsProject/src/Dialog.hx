@@ -1,5 +1,6 @@
 package;
 
+import h3d.Vector;
 import h2d.Scene;
 import h2d.Interactive;
 import h2d.Text;
@@ -17,7 +18,7 @@ class Dialog {
 		obj.setPosition(x, y);
 	}
 	
-	public function new(text:String, scene:Scene, w:Float, h:Float, firstBtn:Void->Void, secondBtn:Void->Void = null, backColor:Int = 0x000000, backAlpha:Float = 0.8) {
+	public function new(text:String, textColor:Int, scene:Scene, w:Float, h:Float, firstBtn:Void->Void, secondBtn:Void->Void = null, backColor:Int = 0x000000, backAlpha:Float = 0.8) {
 		var interact = new Interactive(5000.0, 5000.0, scene);
 		interact.cursor = Default;
 		
@@ -34,6 +35,7 @@ class Dialog {
 		txt.maxWidth = (w - 40) / 0.6;
 		txt.text = text;
 		txt.scale(0.6);
+		txt.color = Vector.fromColor(textColor);
 
 		if (secondBtn == null) {
 			new Button(w * 0.5, h - 30.0, 100, 40, back, e -> { firstBtn(); obj.remove(); interact.remove(); }).setLabel(Lang.ok(), null, 0xffffff, 0xffffff, 0xffffff, 0.6);

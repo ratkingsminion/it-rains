@@ -16,9 +16,13 @@ import js.Browser;
 #end
 
 class Main extends hxd.App {
-	public static final VERSION = "v0.1";
+	public static final VERSION = "v0.2.1";
 	public static final TICK_TIME = 0.1; // one second per tick
-	public static final TICK_SCALE = 1.0; // TODO
+#if DEBUG
+	public static final TICK_SCALE = 1.0;
+#else
+	public static final TICK_SCALE = 0.8;
+#end
 	public static final GRID_SIZE = 10;
 	public static final TREES_START_COUNT = 7;
 	public static final WIND_CHANGE_AFTER_TICKS = 7.5;
@@ -34,6 +38,7 @@ class Main extends hxd.App {
 	var debugTxt(default, null):Text;
 #end
 	var uiDays:Text;
+	var uiPaused:Text;
 	var uiHoverInfo:Text;
 	var uiBtnLanguage:Button;
 	var uiBtnPause:Button;
@@ -101,16 +106,24 @@ class Main extends hxd.App {
 		
 		// debug information
 		layerUI = new h2d.Object(s2d);
+		layerUI.visible = false;
+
+#if debug
 		debugTxt = new Text(Layout.getFont(), layerUI);
 		debugTxt.setPosition(25.0, 150.0);
 		debugTxt.setScale(0.5);
-		layerUI.visible = false;
+#end
 
 		// USER INTERFACE
 		uiDays = new Text(Layout.getFont(), layerUI);
 		uiDays.setScale(0.8);
 		uiDays.textAlign = Left;
 		uiDays.x = uiDays.y = 25.0;
+
+		uiPaused = new Text(Layout.getFont(), layerUI);
+		uiPaused.setScale(1.5);
+		uiPaused.color = new Vector(1, 1, 1, 0.65);
+		uiPaused.textAlign = Center;
 
 		uiHoverInfo = new Text(Layout.getFont(), layerUI);
 		uiHoverInfo.setScale(0.6);
@@ -119,12 +132,14 @@ class Main extends hxd.App {
 
 		uiBtnLanguage = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			Lang.lang = Lang.lang == English ? German : English;
+			uiPaused.text = Lang.paused();
 			uiBtnLanguage.setLabelText(switch (Lang.lang) {
 				default: "en";
 				case German: "de";
 			});
 		}, false).setLabel("", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.6);
-		uiBtnLanguage.click();
+		
+		Lang.lang = German; uiBtnLanguage.click();
 
 		uiBtnPause = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			togglePause(!paused);
@@ -133,7 +148,7 @@ class Main extends hxd.App {
 		uiBtnHelp = new Button(0.0, 30 + 25.0, 60, 60, layerUI, e -> {
 			var oldPaused = paused;
 			togglePause(false);
-			dialog = new Dialog(Lang.help(), s2d, 500, 400,
+			dialog = new Dialog(Lang.help(), 0xffffffff, s2d, 500, 400,
 				() -> { togglePause(oldPaused); dialog = null; } );
 		}, false).setLabel("?", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
 
@@ -144,19 +159,15 @@ class Main extends hxd.App {
 			else {
 				var oldPaused = paused;
 				togglePause(true);
-				dialog = new Dialog(Lang.confirmReset(), s2d, 300, 200,
+				dialog = new Dialog(Lang.confirmReset(), 0xffffffff, s2d, 300, 200,
 					() -> { resetGame(); togglePause(oldPaused); dialog = null; },
 					() -> { togglePause(oldPaused); dialog = null; } );
 			}
 		}, false).setLabel("R", Layout.getFont(), 0xffffff, 0xffffff, 0xffffff, 0.7);
 
-		// TODO Button-Grafik Hintergrund
-		// TODO Button-Grafik Play/Pause
-		// TODO Kompass-Kreis
-
 		// compass
 		compass = new Compass(s3d);
-		compass.obj.visible = false;
+		compass.objRing.visible = compass.objNeedle.visible = false;
 
 		// hover
 		var hoverMesh = new Cube(1.1, 1.1, 0.5, true);
@@ -176,12 +187,11 @@ class Main extends hxd.App {
 		//
 		
 		togglePause(true);
-		dialog = new Dialog(Lang.start(), s2d, 500, 300, () -> {
+		dialog = new Dialog(Lang.start(), 0xff88ff88, s2d, 500, 400, () -> {
 			togglePause(false);
 			dialog = null;
-
 			layerUI.visible = true;
-			compass.obj.visible = true;
+			compass.objRing.visible = compass.objNeedle.visible = true;
 		});
 	}
 	
@@ -189,6 +199,7 @@ class Main extends hxd.App {
 		paused = p;
 		for (c in clouds) { c.togglePause(p); }
 		uiBtnPause.setLabelText(paused ? "P" : "P");
+		uiPaused.visible = p;
 	}
 
 	function resetGame() {
@@ -290,7 +301,7 @@ class Main extends hxd.App {
 		if (!paused && treeCount == 0) {
 			togglePause(true);
 			layerUI.visible = false;
-			dialog = new Dialog(Lang.lose(), s2d, 300, 300, () -> {
+			dialog = new Dialog(Lang.lose(), 0xffff8888, s2d, 300, 300, () -> {
 				dialog = null;
 				layerUI.visible = true;
 				resetGame();
@@ -456,11 +467,17 @@ class Main extends hxd.App {
 
 		// UI
 		var sw = s2d.width / Layout.SCALE;
-		//var sh = s2d.height / Layout.SCALE;
+		var sh = s2d.height / Layout.SCALE;
 		uiBtnPause.obj.x = sw - 30 - 25.0;
 		uiBtnHelp.obj.x = uiBtnPause.obj.x - 60 - 15.0;
 		uiBtnLanguage.obj.x = uiBtnHelp.obj.x - 60 - 15.0;
 		uiBtnReset.obj.x = uiBtnLanguage.obj.x - 60 - 15.0;
+		uiPaused.x = sw * 0.5;
+		uiPaused.y = sh * 0.65;
+
+		if (dialog != null) {
+			dialog.onResize(s2d);
+		}
     }
 
 	// 
