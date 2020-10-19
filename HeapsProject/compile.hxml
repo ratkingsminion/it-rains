@@ -2,9 +2,11 @@
 #-D debug
 -lib tweenxcore
 -lib heaps
-# -js publish/game.js
+#-js publish/game.js
 -hl publish/game.hl
+#-hl publish/full/game.c
 -lib hlsdl
+#-lib hldx
 -main Main
 --macro keep("h2d.Object")
 -dce full
